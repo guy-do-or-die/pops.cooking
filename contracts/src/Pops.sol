@@ -63,6 +63,9 @@ contract Pops is ERC1155, Ownable {
         tokenToPop[tokenId] = popClone;
         popToToken[popClone] = tokenId;
 
+        // Generate initial challenge for the new Pop
+        Pop(popClone).generateChallenge();
+
         emit TokenMinted(tokenId, to, popClone);
 
         return (tokenId, popClone);

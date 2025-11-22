@@ -59,7 +59,7 @@ contract PopsFactoryTest is Test {
         // Try to generate challenge as non-owner
         address attacker = address(0x2);
         vm.prank(attacker);
-        vm.expectRevert("Pop: caller is not token owner");
+        vm.expectRevert("Pop: caller is not authorized");
         pop.generateChallenge();
     }
 

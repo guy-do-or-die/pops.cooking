@@ -70,6 +70,14 @@ contract Pop is Initializable {
     }
 
     /**
+     * @notice Only the token owner or factory can call this function
+     */
+    modifier onlyTokenOwnerOrFactory() {
+        require(msg.sender == tokenOwner || msg.sender == factory, "Pop: caller is not authorized");
+        _;
+    }
+
+    /**
      * @notice Generate a new challenge for this token
      * @return challengeHash The unique challenge hash
      * @return baseBlock The block number when challenge was generated
@@ -77,7 +85,7 @@ contract Pop is Initializable {
      */
     function generateChallenge()
         external
-        onlyTokenOwner
+        onlyTokenOwnerOrFactory
         returns (
             bytes32 challengeHash,
             uint256 baseBlock,
