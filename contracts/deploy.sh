@@ -30,18 +30,26 @@ forge script script/Deploy.s.sol:DeployPops \
     #--verifier etherscan \
     #--etherscan-api-key $ETHERSCAN_API_KEY \
 
-# Extract new contract address
-# Expected output format: "Pops deployed at: 0x..."
+# Extract new contract addresses
+# Expected output format: "Pops deployed at: 0x..." and "Pop implementation at: 0x..."
 NEW_ADDRESS=$(grep "Pops deployed at:" $OUTPUT_FILE | awk '{print $4}')
+POP_IMPL_ADDRESS=$(grep "Pop implementation at:" $OUTPUT_FILE | awk '{print $4}')
 
 if [ -n "$NEW_ADDRESS" ]; then
-    echo "New Contract Address: $NEW_ADDRESS"
+    echo "New Pops Factory Address: $NEW_ADDRESS"
+    echo "New Pop Implementation Address: $POP_IMPL_ADDRESS"
     
     # Update contracts/.env
     if grep -q "POPS_CONTRACT_ADDRESS=" .env; then
         sed -i "s/POPS_CONTRACT_ADDRESS=.*/POPS_CONTRACT_ADDRESS=$NEW_ADDRESS/" .env
     else
         echo "POPS_CONTRACT_ADDRESS=$NEW_ADDRESS" >> .env
+    fi
+    
+    if grep -q "POP_IMPLEMENTATION_ADDRESS=" .env; then
+        sed -i "s/POP_IMPLEMENTATION_ADDRESS=.*/POP_IMPLEMENTATION_ADDRESS=$POP_IMPL_ADDRESS/" .env
+    else
+        echo "POP_IMPLEMENTATION_ADDRESS=$POP_IMPL_ADDRESS" >> .env
     fi
     echo "Updated contracts/.env"
 
