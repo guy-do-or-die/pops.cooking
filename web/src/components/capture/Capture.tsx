@@ -314,16 +314,28 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
         if (disabled) {
             return;
         }
-        if (!recordedBlob || !challengeHash) return;
+        if (!recordedBlob || !challengeHash || !contractAddress) return;
+
+        // Get user address from wallet
+        const wallet = wallets[0];
+        if (!wallet) {
+            console.error('No wallet connected');
+            return;
+        }
+
+        const userAddress = wallet.address;
+        if (!userAddress) {
+            console.error('No user address found');
+            return;
+        }
 
         setVerifying(true);
         setVerificationResult(null);
 
         const formData = new FormData();
         formData.append('file', recordedBlob, 'capture.webm');
-        formData.append('challenge', challengeHash);
-        formData.append('base_block', '100');
-        formData.append('expires_block', '200');
+        formData.append('contract_address', contractAddress);
+        formData.append('user_address', userAddress);
 
         try {
             const response = await fetch('/api/verify', {

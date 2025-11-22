@@ -1,8 +1,10 @@
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 from typing import Optional
+from web3 import Web3
+import json
 
 app = FastAPI()
 
@@ -14,6 +16,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Contract ABI for reading userChallenges
+CONTRACT_ABI = json.loads('''[
+    {
+        "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+        "name": "userChallenges",
+        "outputs": [
+            {"internalType": "bytes32", "name": "challengeHash", "type": "bytes32"},
+            {"internalType": "uint256", "name": "baseBlock", "type": "uint256"},
+            {"internalType": "uint256", "name": "expiresBlock", "type": "uint256"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]''')
+
+# RPC endpoint - should be configurable via env var
+# Using Celo Sepolia testnet public RPC endpoint (Ankr)
+RPC_URL = os.getenv("RPC_URL", "https://rpc.ankr.com/celo_sepolia")
+w3 = Web3(Web3.HTTPProvider(RPC_URL))
+
+print(f"[INIT] Connected to RPC: {RPC_URL}")
+print(f"[INIT] Current block: {w3.eth.block_number}")
+
 @app.get("/health")
 def health_check():
     return {"status": "ok", "tee_mode": True}
@@ -21,10 +46,43 @@ def health_check():
 @app.post("/verify")
 async def verify_clip(
     file: UploadFile = File(...),
-    challenge: str = Form(...),
-    base_block: int = Form(...),
-    expires_block: int = Form(...)
+    contract_address: str = Form(...),
+    user_address: str = Form(...)
 ):
+    # Fetch challenge from contract
+    try:
+        contract = w3.eth.contract(
+            address=Web3.to_checksum_address(contract_address),
+            abi=CONTRACT_ABI
+        )
+        
+        challenge_data = contract.functions.userChallenges(
+            Web3.to_checksum_address(user_address)
+        ).call()
+        
+        challenge_hash = challenge_data[0].hex()
+        base_block = challenge_data[1]
+        expires_block = challenge_data[2]
+        
+        # Verify challenge exists
+        if challenge_hash == '0x' + '00' * 32:
+            raise HTTPException(status_code=400, detail="No challenge found for user")
+        
+        # Verify block validity
+        current_block = w3.eth.block_number
+        if current_block < base_block or current_block > expires_block:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Challenge expired. Current block: {current_block}, Valid range: {base_block}-{expires_block}"
+            )
+        
+        print(f"[CONTRACT] Fetched challenge for {user_address}")
+        print(f"[CONTRACT] Challenge hash: 0x{challenge_hash}")
+        print(f"[CONTRACT] Block range: {base_block}-{expires_block} (current: {current_block})")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch challenge from contract: {str(e)}")
+    
     temp_file = f"temp_{file.filename}"
     with open(temp_file, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -35,11 +93,11 @@ async def verify_clip(
         from challenge import derive_challenge
         
         # Derive expected patterns from challenge hash
-        derived = derive_challenge(challenge)
+        derived = derive_challenge('0x' + challenge_hash)
         expected_freqs = derived["audio_frequencies"]
         expected_strobes = derived["strobe_timings"]
         
-        print(f"Challenge: {challenge}")
+        print(f"Challenge: 0x{challenge_hash}")
         print(f"Expected frequencies: {expected_freqs}")
         print(f"Expected strobe timings: {expected_strobes}")
         
@@ -147,7 +205,7 @@ async def verify_clip(
         
         return {
             "verified": verified,
-            "challenge": challenge,
+            "challenge": '0x' + challenge_hash,
             "metrics": {
                 "audio_peaks": audio_peaks,
                 "expected_audio_count": len(expected_freqs),
