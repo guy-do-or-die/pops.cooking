@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Square, Upload } from 'lucide-react';
+import { Play, Square, Upload, RefreshCw } from 'lucide-react';
+import { generateChallengeHash, deriveChallenge, type ChallengeParams, type DerivedChallenge } from '@/lib/challenge';
 
 interface VerificationResult {
     verified: boolean;
@@ -13,12 +14,28 @@ export const Capture: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const recordingStartTime = useRef<number>(0);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [recording, setRecording] = useState(false);
     const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
     const [verifying, setVerifying] = useState(false);
     const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+    const [challengeHash, setChallengeHash] = useState<string>('');
+    const [derivedChallenge, setDerivedChallenge] = useState<DerivedChallenge | null>(null);
     const chunksRef = useRef<Blob[]>([]);
+
+    // Generate initial challenge on mount
+    useEffect(() => {
+        generateNewChallenge();
+    }, []);
+
+    const generateNewChallenge = () => {
+        const hash = generateChallengeHash();
+        const derived = deriveChallenge(hash);
+        setChallengeHash(hash);
+        setDerivedChallenge(derived);
+        console.log('Generated challenge:', { hash, derived });
+    };
 
     useEffect(() => {
         async function setupCamera() {
@@ -71,10 +88,16 @@ export const Capture: React.FC = () => {
                 if (ctx && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
                     ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
-                    // Strobe Logic (Placeholder - simple flashing square)
-                    if (recording) {
-                        const time = Date.now() % 1500;
-                        if (time < 100) {
+                    // Strobe Logic using derived challenge
+                    if (recording && derivedChallenge && recordingStartTime.current > 0) {
+                        const elapsed = Date.now() - recordingStartTime.current;
+
+                        // Check if current time matches any strobe timing (±50ms tolerance)
+                        const shouldStrobe = derivedChallenge.strobeTimings.some(timing =>
+                            Math.abs(elapsed - timing) < 50
+                        );
+
+                        if (shouldStrobe) {
                             ctx.fillStyle = 'white';
                             ctx.fillRect(100, 100, 200, 200);
                         }
@@ -85,18 +108,19 @@ export const Capture: React.FC = () => {
         };
         draw();
         return () => cancelAnimationFrame(animationFrameId);
-    }, [recording]);
+    }, [recording, derivedChallenge]);
 
     const startRecording = () => {
-        if (!canvasRef.current) {
-            console.error('Canvas ref is null');
+        if (!canvasRef.current || !derivedChallenge) {
+            console.error('Canvas ref is null or challenge not generated');
             return;
         }
 
-        console.log('Starting recording...');
+        console.log('Starting recording with challenge:', challengeHash);
         setRecordedBlob(null);
         setVerificationResult(null);
         chunksRef.current = [];
+        recordingStartTime.current = Date.now();
 
         const canvasStream = canvasRef.current.captureStream(30);
         console.log('Canvas stream created:', canvasStream);
@@ -134,10 +158,10 @@ export const Capture: React.FC = () => {
         mediaRecorderRef.current = recorder;
         setRecording(true);
 
-        // Play Audio Chirps
+        // Play Audio Chirps using derived frequencies
         const ctx = new AudioContext();
-        console.log('Playing chirps...');
-        [900, 1200, 1500].forEach((freq, i) => {
+        console.log('Playing chirps at frequencies:', derivedChallenge.audioFrequencies);
+        derivedChallenge.audioFrequencies.forEach((freq, i) => {
             const osc = ctx.createOscillator();
             osc.connect(ctx.destination);
             osc.frequency.value = freq;
@@ -158,14 +182,14 @@ export const Capture: React.FC = () => {
     };
 
     const verifyRecording = async () => {
-        if (!recordedBlob) return;
+        if (!recordedBlob || !challengeHash) return;
 
         setVerifying(true);
         setVerificationResult(null);
 
         const formData = new FormData();
         formData.append('file', recordedBlob, 'capture.webm');
-        formData.append('challenge', 'test_challenge_123');
+        formData.append('challenge', challengeHash);
         formData.append('base_block', '100');
         formData.append('expires_block', '200');
 
@@ -189,6 +213,29 @@ export const Capture: React.FC = () => {
 
     return (
         <div className="flex flex-col items-center gap-4 p-4 w-full max-w-4xl">
+            {/* Challenge Info */}
+            {challengeHash && derivedChallenge && (
+                <div className="w-full border rounded-lg p-3 bg-muted text-sm">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold">Challenge Hash:</span>
+                        <Button
+                            onClick={generateNewChallenge}
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1 h-7"
+                            disabled={recording || verifying}
+                        >
+                            <RefreshCw className="w-3 h-3" />
+                            New
+                        </Button>
+                    </div>
+                    <div className="font-mono text-xs break-all opacity-70">{challengeHash}</div>
+                    <div className="mt-2 text-xs opacity-60">
+                        Freqs: {derivedChallenge.audioFrequencies.map(f => f.toFixed(0)).join(', ')} Hz
+                    </div>
+                </div>
+            )}
+
             <div className="relative border rounded-lg overflow-hidden bg-black">
                 <video ref={videoRef} autoPlay playsInline muted className="hidden" />
                 <canvas ref={canvasRef} width={640} height={480} className="w-full max-w-[640px]" />
