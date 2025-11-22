@@ -74,16 +74,17 @@ contract PopsFactoryTest is Test {
         vm.prank(user);
         (bytes32 challengeHash,,) = pop.generateChallenge();
 
-        // Record progress as factory owner
-        factory.recordProgress(popClone, challengeHash);
+        // Record progress as token owner with IPFS CID
+        vm.prank(user);
+        pop.recordProgress(challengeHash, "QmTest123");
 
         // Verify progress was recorded
-        assertEq(pop.getProgressCount(), 1);
+        assertEq(pop.progressCount(), 1);
         
         Pop.Progress memory progress = pop.getProgress(0);
         assertEq(progress.challengeHash, challengeHash);
+        assertEq(progress.ipfsCid, "QmTest123");
         assertEq(progress.timestamp, block.timestamp);
-        assertTrue(progress.verified);
     }
 
     function testMultipleTokens() public {

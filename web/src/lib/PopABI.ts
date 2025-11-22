@@ -30,8 +30,54 @@ export const PopABI = [
     },
     {
         "inputs": [],
-        "name": "getProgressCount",
+        "name": "progressCount",
         "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"internalType": "bytes32", "name": "challengeHash", "type": "bytes32"},
+            {"internalType": "string", "name": "ipfsCid", "type": "string"}
+        ],
+        "name": "recordProgress",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{"internalType": "uint256", "name": "progressId", "type": "uint256"}],
+        "name": "getProgress",
+        "outputs": [
+            {
+                "components": [
+                    {"internalType": "bytes32", "name": "challengeHash", "type": "bytes32"},
+                    {"internalType": "string", "name": "ipfsCid", "type": "string"},
+                    {"internalType": "uint256", "name": "timestamp", "type": "uint256"}
+                ],
+                "internalType": "struct Pop.Progress",
+                "name": "",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getAllProgress",
+        "outputs": [
+            {
+                "components": [
+                    {"internalType": "bytes32", "name": "challengeHash", "type": "bytes32"},
+                    {"internalType": "string", "name": "ipfsCid", "type": "string"},
+                    {"internalType": "uint256", "name": "timestamp", "type": "uint256"}
+                ],
+                "internalType": "struct Pop.Progress[]",
+                "name": "entries",
+                "type": "tuple[]"
+            }
+        ],
         "stateMutability": "view",
         "type": "function"
     },

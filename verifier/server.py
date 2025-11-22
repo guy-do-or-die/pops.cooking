@@ -5,6 +5,9 @@ import os
 from typing import Optional
 from web3 import Web3
 import json
+import subprocess
+import base64
+from pathlib import Path
 
 app = FastAPI()
 
@@ -45,6 +48,52 @@ w3 = Web3(Web3.HTTPProvider(RPC_URL))
 
 print(f"[INIT] Connected to RPC: {RPC_URL}")
 print(f"[INIT] Current block: {w3.eth.block_number}")
+
+def extract_screenshot(video_path: str, timestamp_s: float = 1.0) -> str:
+    """
+    Extract a screenshot from video at given timestamp
+    Returns base64-encoded PNG image
+    """
+    screenshot_path = f"{video_path}_screenshot.png"
+    try:
+        subprocess.run([
+            "ffmpeg", "-i", video_path,
+            "-ss", str(timestamp_s),
+            "-vframes", "1",
+            "-q:v", "2",
+            screenshot_path
+        ], check=True, capture_output=True)
+        
+        with open(screenshot_path, "rb") as f:
+            img_data = f.read()
+            img_base64 = base64.b64encode(img_data).decode('utf-8')
+        
+        os.remove(screenshot_path)
+        return img_base64
+    except Exception as e:
+        print(f"[ERROR] Failed to extract screenshot: {e}")
+        if os.path.exists(screenshot_path):
+            os.remove(screenshot_path)
+        raise
+
+def upload_to_ipfs(image_base64: str) -> str:
+    """
+    Upload image to IPFS/Filecoin
+    TODO: Integrate with web3.storage or similar service
+    For now, returns a mock CID
+    """
+    # Placeholder - integrate with web3.storage API
+    # Example: https://web3.storage/docs/how-tos/upload/
+    
+    # Mock CID for testing
+    import hashlib
+    hash_obj = hashlib.sha256(image_base64.encode())
+    mock_cid = f"Qm{hash_obj.hexdigest()[:44]}"
+    
+    print(f"[IPFS] Mock CID generated: {mock_cid}")
+    print(f"[IPFS] TODO: Implement actual upload to web3.storage")
+    
+    return mock_cid
 
 @app.get("/health")
 def health_check():
@@ -212,7 +261,7 @@ async def verify_clip(
 
         verified = alignment_ok
         
-        return {
+        response = {
             "verified": verified,
             "challenge": '0x' + challenge_hash,
             "metrics": {
@@ -231,6 +280,28 @@ async def verify_clip(
                 "strobe_match": strobe_match
             }
         }
+        
+        # If verified, extract screenshot and upload to IPFS
+        if verified:
+            try:
+                print("[SCREENSHOT] Extracting screenshot from verified footage...")
+                # Extract screenshot at 1 second into the video
+                screenshot_base64 = extract_screenshot(temp_file, timestamp_s=1.0)
+                
+                print("[IPFS] Uploading screenshot to IPFS...")
+                ipfs_cid = upload_to_ipfs(screenshot_base64)
+                
+                # Add IPFS data to response
+                response["ipfs_cid"] = ipfs_cid
+                response["screenshot_preview"] = f"data:image/png;base64,{screenshot_base64[:100]}..."  # Preview only
+                
+                print(f"[SUCCESS] Screenshot uploaded: {ipfs_cid}")
+            except Exception as e:
+                print(f"[ERROR] Failed to process screenshot: {e}")
+                # Don't fail verification if screenshot upload fails
+                response["ipfs_error"] = str(e)
+        
+        return response
     except Exception as e:
         import traceback
         traceback.print_exc()

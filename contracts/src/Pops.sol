@@ -102,18 +102,6 @@ contract Pops is ERC1155, Ownable {
     }
 
     /**
-     * @notice Record progress for a token (called by verifier)
-     * @param popClone The Pop clone address
-     * @param challengeHash The verified challenge hash
-     */
-    function recordProgress(address popClone, bytes32 challengeHash) external onlyOwner {
-        require(popToToken[popClone] != 0 || tokenToPop[popToToken[popClone]] == popClone, 
-                "PopsFactory: invalid Pop clone");
-        
-        Pop(popClone).recordProgress(challengeHash);
-    }
-
-    /**
      * @notice Update the base URI
      * @param newuri The new base URI
      */

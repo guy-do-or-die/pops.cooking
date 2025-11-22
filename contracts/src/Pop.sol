@@ -18,6 +18,7 @@ contract Pop is Initializable {
     event ProgressRecorded(
         uint256 indexed progressId,
         bytes32 challengeHash,
+        string ipfsCid,
         uint256 timestamp
     );
 
@@ -29,8 +30,8 @@ contract Pop is Initializable {
 
     struct Progress {
         bytes32 challengeHash;
+        string ipfsCid;
         uint256 timestamp;
-        bool verified;
     }
 
     /// @notice The factory contract that deployed this clone
@@ -42,8 +43,11 @@ contract Pop is Initializable {
     /// @notice The current challenge
     Challenge public currentChallenge;
 
-    /// @notice Progress history
-    Progress[] public progressHistory;
+    /// @notice Progress history mapping (progressId => Progress)
+    mapping(uint256 => Progress) public progressHistory;
+
+    /// @notice Counter for progress IDs
+    uint256 public progressCount;
 
     /// @notice Duration for which a challenge is valid (in blocks)
     uint256 public constant CHALLENGE_DURATION = 100;
@@ -105,19 +109,22 @@ contract Pop is Initializable {
     }
 
     /**
-     * @notice Record verified progress (called by verifier/factory)
+     * @notice Record verified progress (called by token owner after verification)
      * @param challengeHash The challenge that was verified
+     * @param ipfsCid The IPFS CID of the screenshot from verified footage
      */
-    function recordProgress(bytes32 challengeHash) external {
-        require(msg.sender == factory, "Pop: only factory can record progress");
+    function recordProgress(bytes32 challengeHash, string calldata ipfsCid) external onlyTokenOwner {
+        require(bytes(ipfsCid).length > 0, "Pop: IPFS CID required");
         
-        progressHistory.push(Progress({
+        uint256 progressId = progressCount++;
+        
+        progressHistory[progressId] = Progress({
             challengeHash: challengeHash,
-            timestamp: block.timestamp,
-            verified: true
-        }));
+            ipfsCid: ipfsCid,
+            timestamp: block.timestamp
+        });
 
-        emit ProgressRecorded(progressHistory.length - 1, challengeHash, block.timestamp);
+        emit ProgressRecorded(progressId, challengeHash, ipfsCid, block.timestamp);
     }
 
     /**
@@ -137,17 +144,22 @@ contract Pop is Initializable {
     }
 
     /**
-     * @notice Get progress history length
+     * @notice Get specific progress entry
+     * @param progressId The progress ID to retrieve
      */
-    function getProgressCount() external view returns (uint256) {
-        return progressHistory.length;
+    function getProgress(uint256 progressId) external view returns (Progress memory) {
+        require(progressId < progressCount, "Pop: invalid progress ID");
+        return progressHistory[progressId];
     }
 
     /**
-     * @notice Get specific progress entry
+     * @notice Get all progress entries
+     * @return entries Array of all progress entries
      */
-    function getProgress(uint256 index) external view returns (Progress memory) {
-        require(index < progressHistory.length, "Pop: invalid index");
-        return progressHistory[index];
+    function getAllProgress() external view returns (Progress[] memory entries) {
+        entries = new Progress[](progressCount);
+        for (uint256 i = 0; i < progressCount; i++) {
+            entries[i] = progressHistory[i];
+        }
     }
 }
