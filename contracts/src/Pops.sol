@@ -14,6 +14,15 @@ contract Pops {
         uint256 expiresBlock
     );
 
+    struct Challenge {
+        bytes32 challengeHash;
+        uint256 baseBlock;
+        uint256 expiresBlock;
+    }
+
+    /// @notice Stores the latest challenge for each user
+    mapping(address => Challenge) public userChallenges;
+
     /// @notice Duration for which a challenge is valid (in blocks)
     uint256 public constant CHALLENGE_DURATION = 100;
 
@@ -42,6 +51,13 @@ contract Pops {
                 block.timestamp
             )
         );
+
+        // Store the challenge
+        userChallenges[msg.sender] = Challenge({
+            challengeHash: challengeHash,
+            baseBlock: baseBlock,
+            expiresBlock: expiresBlock
+        });
 
         emit ChallengeGenerated(msg.sender, challengeHash, baseBlock, expiresBlock);
         
