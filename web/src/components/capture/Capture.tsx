@@ -2,8 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Square, Upload, RefreshCw } from 'lucide-react';
 import { generateChallengeHash, deriveChallenge, type DerivedChallenge } from '@/lib/challenge';
-import { useWriteContract, useAccount } from 'wagmi';
+import { usePublicClient } from 'wagmi';
+import { useWallets } from '@privy-io/react-auth';
+import { decodeEventLog, createWalletClient, custom } from 'viem';
 import { PopsABI } from '@/lib/PopsABI';
+import { chain } from '@/lib/wagmi';
 
 interface VerificationResult {
     verified: boolean;
@@ -12,7 +15,11 @@ interface VerificationResult {
     error?: string;
 }
 
-export const Capture: React.FC = () => {
+interface CaptureProps {
+    disabled?: boolean;
+}
+
+export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -26,8 +33,8 @@ export const Capture: React.FC = () => {
     const [derivedChallenge, setDerivedChallenge] = useState<DerivedChallenge | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
-    const { isConnected } = useAccount();
-    const { writeContract, isPending } = useWriteContract();
+    const { wallets } = useWallets();
+    const publicClient = usePublicClient();
 
     // Contract address from env
     const contractAddress = import.meta.env.VITE_POPS_CONTRACT_ADDRESS as `0x${string}` | undefined;
@@ -46,24 +53,77 @@ export const Capture: React.FC = () => {
     };
 
     const generateChallengeFromContract = async () => {
-        if (!contractAddress) {
-            alert('Please set VITE_POPS_CONTRACT_ADDRESS in .env.local');
+        if (!contractAddress || !publicClient) {
+            alert('Contract address or public client not available');
+            return;
+        }
+
+        const wallet = wallets[0];
+        if (!wallet) {
+            alert('No wallet connected');
             return;
         }
 
         try {
-            const result = await writeContract({
+            // Switch to Celo Sepolia if needed
+            const chainId = `0x${chain.id.toString(16)}`;
+            console.log('Checking chain ID. Wallet:', wallet.chainId, 'Required:', chainId);
+            if (wallet.chainId !== chainId) {
+                console.log('Switching chain...');
+                await wallet.switchChain(chain.id);
+            }
+
+            const provider = await wallet.getEthereumProvider();
+            const walletClient = createWalletClient({
+                chain,
+                transport: custom(provider)
+            });
+
+            const [address] = await walletClient.getAddresses();
+
+            const hash = await walletClient.writeContract({
                 address: contractAddress,
                 abi: PopsABI,
                 functionName: 'generateChallenge',
+                account: address,
+                chain
             });
 
-            console.log('Contract transaction:', result);
-            // In a real app, we'd wait for the transaction and get the challenge hash from the event
-            // For now, we'll generate locally
+            console.log('Transaction sent:', hash);
+
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            console.log('Transaction confirmed:', receipt);
+
+            // We can just look at the logs and try to decode
+            for (const log of receipt.logs) {
+                try {
+                    const decoded = decodeEventLog({
+                        abi: PopsABI,
+                        data: log.data,
+                        topics: log.topics,
+                    });
+
+                    if (decoded.eventName === 'ChallengeGenerated') {
+                        const newHash = decoded.args.challengeHash;
+                        console.log('On-chain challenge hash:', newHash);
+
+                        const derived = deriveChallenge(newHash);
+                        setChallengeHash(newHash);
+                        setDerivedChallenge(derived);
+                        return;
+                    }
+                } catch (e) {
+                    // Not our event
+                }
+            }
+
+            console.warn('ChallengeGenerated event not found in logs');
+            // Fallback if event not found (shouldn't happen if tx succeeded)
             generateNewChallenge();
+
         } catch (error) {
             console.error('Error calling contract:', error);
+            alert(`Transaction failed: ${error instanceof Error ? error.message : String(error)}`);
             // Fallback to local generation
             generateNewChallenge();
         }
@@ -143,6 +203,9 @@ export const Capture: React.FC = () => {
     }, [recording, derivedChallenge]);
 
     const startRecording = () => {
+        if (disabled) {
+            return;
+        }
         if (!canvasRef.current || !derivedChallenge) {
             console.error('Canvas ref is null or challenge not generated');
             return;
@@ -214,6 +277,9 @@ export const Capture: React.FC = () => {
     };
 
     const verifyRecording = async () => {
+        if (disabled) {
+            return;
+        }
         if (!recordedBlob || !challengeHash) return;
 
         setVerifying(true);
@@ -251,19 +317,25 @@ export const Capture: React.FC = () => {
                     <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold">Challenge Hash:</span>
                         <Button
-                            onClick={() => isConnected && contractAddress ? generateChallengeFromContract() : generateNewChallenge()}
+                            onClick={() => wallets.length > 0 && contractAddress ? generateChallengeFromContract() : generateNewChallenge()}
                             variant="ghost"
                             size="sm"
                             className="gap-1 h-7"
-                            disabled={recording || verifying || isPending}
+                            disabled={disabled || recording || verifying}
                         >
                             <RefreshCw className="w-3 h-3" />
-                            {isPending ? 'Pending...' : isConnected && contractAddress ? 'From Contract' : 'New'}
+                            {wallets.length > 0 && contractAddress ? 'From Contract' : 'New'}
                         </Button>
                     </div>
                     <div className="font-mono text-xs break-all opacity-70">{challengeHash}</div>
                     <div className="mt-2 text-xs opacity-60">
                         Freqs: {derivedChallenge.audioFrequencies.map(f => f.toFixed(0)).join(', ')} Hz
+                    </div>
+                    {/* Debug Info */}
+                    <div className="mt-2 text-[10px] opacity-50 border-t pt-1">
+                        Wallet: {wallets.length > 0 ? 'Connected' : 'No'} |
+                        Contract: {contractAddress ? 'Set' : 'Missing'} |
+                        Addr: {contractAddress?.slice(0, 6)}...
                     </div>
                 </div>
             )}
@@ -279,11 +351,20 @@ export const Capture: React.FC = () => {
             <div className="flex gap-2">
                 {!recording ? (
                     <>
-                        <Button onClick={startRecording} className="gap-2" disabled={!!recordedBlob && !verifying}>
+                        <Button
+                            onClick={startRecording}
+                            className="gap-2"
+                            disabled={disabled || (!!recordedBlob && !verifying)}
+                        >
                             <Play className="w-4 h-4" /> Capture (5s)
                         </Button>
                         {recordedBlob && (
-                            <Button onClick={verifyRecording} variant="secondary" className="gap-2" disabled={verifying}>
+                            <Button
+                                onClick={verifyRecording}
+                                variant="secondary"
+                                className="gap-2"
+                                disabled={disabled || verifying}
+                            >
                                 <Upload className="w-4 h-4" /> {verifying ? 'Verifying...' : 'Verify'}
                             </Button>
                         )}
