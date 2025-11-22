@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Square, Upload, RefreshCw } from 'lucide-react';
-import { generateChallengeHash, deriveChallenge, type ChallengeParams, type DerivedChallenge } from '@/lib/challenge';
+import { generateChallengeHash, deriveChallenge, type DerivedChallenge } from '@/lib/challenge';
+import { useWriteContract, useAccount } from 'wagmi';
+import { PopsABI } from '@/lib/PopsABI';
 
 interface VerificationResult {
     verified: boolean;
@@ -24,6 +26,12 @@ export const Capture: React.FC = () => {
     const [derivedChallenge, setDerivedChallenge] = useState<DerivedChallenge | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
+    const { isConnected } = useAccount();
+    const { writeContract, isPending } = useWriteContract();
+
+    // Contract address from env
+    const contractAddress = import.meta.env.VITE_POPS_CONTRACT_ADDRESS as `0x${string}` | undefined;
+
     // Generate initial challenge on mount
     useEffect(() => {
         generateNewChallenge();
@@ -34,7 +42,31 @@ export const Capture: React.FC = () => {
         const derived = deriveChallenge(hash);
         setChallengeHash(hash);
         setDerivedChallenge(derived);
-        console.log('Generated challenge:', { hash, derived });
+        console.log('Generated challenge (local):', { hash, derived });
+    };
+
+    const generateChallengeFromContract = async () => {
+        if (!contractAddress) {
+            alert('Please set VITE_POPS_CONTRACT_ADDRESS in .env.local');
+            return;
+        }
+
+        try {
+            const result = await writeContract({
+                address: contractAddress,
+                abi: PopsABI,
+                functionName: 'generateChallenge',
+            });
+
+            console.log('Contract transaction:', result);
+            // In a real app, we'd wait for the transaction and get the challenge hash from the event
+            // For now, we'll generate locally
+            generateNewChallenge();
+        } catch (error) {
+            console.error('Error calling contract:', error);
+            // Fallback to local generation
+            generateNewChallenge();
+        }
     };
 
     useEffect(() => {
@@ -219,14 +251,14 @@ export const Capture: React.FC = () => {
                     <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold">Challenge Hash:</span>
                         <Button
-                            onClick={generateNewChallenge}
+                            onClick={() => isConnected && contractAddress ? generateChallengeFromContract() : generateNewChallenge()}
                             variant="ghost"
                             size="sm"
                             className="gap-1 h-7"
-                            disabled={recording || verifying}
+                            disabled={recording || verifying || isPending}
                         >
                             <RefreshCw className="w-3 h-3" />
-                            New
+                            {isPending ? 'Pending...' : isConnected && contractAddress ? 'From Contract' : 'New'}
                         </Button>
                     </div>
                     <div className="font-mono text-xs break-all opacity-70">{challengeHash}</div>
