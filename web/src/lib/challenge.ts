@@ -48,13 +48,36 @@ export function deriveChallenge(hash: string): DerivedChallenge {
     });
 
     // Derive strobe timings (when strobes should appear within 5s recording)
-    // Let's have 3-5 strobes
-    const strobeCount = 3 + (hashToNumber(cleanHash, 24) % 3); // 3-5 strobes
-    const strobeTimings = Array.from({ length: strobeCount }, (_, i) => {
-        const num = hashToNumber(cleanHash, (i + 3) * 8);
-        // Spread strobes across 5 seconds
-        return (num % 5000);
-    }).sort((a, b) => a - b);
+    // Generate 3 strobes with minimum 300ms spacing to ensure audio chirps are detectable
+    const strobeCount = 3;
+    const minSpacing = 300; // Minimum 300ms between chirps
+    const strobeTimings: number[] = [];
+    
+    for (let i = 0; i < strobeCount; i++) {
+        let timing: number;
+        let attempts = 0;
+        const maxAttempts = 100;
+        
+        do {
+            const num = hashToNumber(cleanHash, (i + 3 + attempts) * 8);
+            // Spread across 5 seconds, leaving room at edges
+            timing = 200 + (num % 4600); // Range: 200-4800ms
+            attempts++;
+            
+            // Check if this timing is far enough from all existing timings
+            const isFarEnough = strobeTimings.every(existing => 
+                Math.abs(timing - existing) >= minSpacing
+            );
+            
+            if (isFarEnough || attempts >= maxAttempts) {
+                break;
+            }
+        } while (true);
+        
+        strobeTimings.push(timing);
+    }
+    
+    strobeTimings.sort((a, b) => a - b);
 
     // Strobe duration is fixed at 100ms
     const strokeInterval = 1500;

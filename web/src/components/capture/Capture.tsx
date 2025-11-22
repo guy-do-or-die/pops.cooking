@@ -24,6 +24,7 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingStartTime = useRef<number>(0);
+    const audioContextStartTime = useRef<number>(0);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [recording, setRecording] = useState(false);
     const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -185,15 +186,18 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
                     ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
                     // Strobe Logic using derived challenge
-                    if (recording && derivedChallenge && recordingStartTime.current > 0) {
-                        const elapsed = Date.now() - recordingStartTime.current;
+                    if (recording && derivedChallenge && audioContextStartTime.current > 0) {
+                        // Calculate elapsed time from AudioContext start to stay in sync with chirps
+                        // performance.now() returns milliseconds, strobeTimings are in milliseconds
+                        const elapsed = performance.now() - audioContextStartTime.current;
 
-                        // Check if current time matches any strobe timing (±50ms tolerance)
+                        // Check if current time matches any strobe timing (±150ms tolerance)
                         const shouldStrobe = derivedChallenge.strobeTimings.some(timing =>
-                            Math.abs(elapsed - timing) < 50
+                            Math.abs(elapsed - timing) < 150
                         );
 
                         if (shouldStrobe) {
+                            console.log(`[STROBE] Drawing at elapsed=${elapsed.toFixed(0)}ms`);
                             ctx.fillStyle = 'white';
                             ctx.fillRect(100, 100, 200, 200);
                         }
@@ -219,16 +223,54 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
         setRecordedBlob(null);
         setVerificationResult(null);
         chunksRef.current = [];
-        recordingStartTime.current = Date.now();
+        
+        recordingStartTime.current = performance.now();
 
         const canvasStream = canvasRef.current.captureStream(30);
         console.log('Canvas stream created:', canvasStream);
 
-        if (stream) {
-            const audioTracks = stream.getAudioTracks();
-            console.log('Audio tracks:', audioTracks);
-            audioTracks.forEach(track => canvasStream.addTrack(track));
-        }
+        // Create AudioContext and destination for synthetic audio
+        const ctx = new AudioContext();
+        const audioDestination = ctx.createMediaStreamDestination();
+        
+        console.log('[AUDIO] Playing chirps at frequencies:', derivedChallenge.audioFrequencies);
+        console.log('[TIMING] Strobe timings (ms):', derivedChallenge.strobeTimings);
+        
+        // Store when AudioContext starts for strobe timing sync
+        audioContextStartTime.current = performance.now();
+        console.log('[TIMING] AudioContext started at performance.now():', audioContextStartTime.current);
+
+        const strobeTimesSec = derivedChallenge.strobeTimings
+            .slice(0, derivedChallenge.audioFrequencies.length)
+            .map((ms) => ms / 1000);
+
+        console.log('[AUDIO] Chirp schedule (seconds):', strobeTimesSec);
+
+        // Create chirps and connect to both speakers and recording
+        derivedChallenge.audioFrequencies.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            gain.gain.value = 0.5; // Moderate volume
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination); // Play to speakers
+            gain.connect(audioDestination); // Record to stream
+            
+            osc.frequency.value = freq;
+
+            const offset = strobeTimesSec[i] ?? i * 1.5;
+            const startTime = ctx.currentTime + offset;
+
+            console.log(`[AUDIO] Chirp ${i}: ${freq}Hz at ctx.currentTime=${ctx.currentTime.toFixed(3)} + offset=${offset.toFixed(3)} = ${startTime.toFixed(3)}s`);
+
+            osc.start(startTime);
+            osc.stop(startTime + 0.1);
+        });
+
+        // Add synthetic audio track to canvas stream
+        const audioTracks = audioDestination.stream.getAudioTracks();
+        console.log('Audio tracks from AudioContext:', audioTracks);
+        audioTracks.forEach(track => canvasStream.addTrack(track));
 
         const recorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
         console.log('MediaRecorder created:', recorder);
@@ -256,26 +298,6 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
         console.log('MediaRecorder started, state:', recorder.state);
         mediaRecorderRef.current = recorder;
         setRecording(true);
-
-        // Play Audio Chirps using derived frequencies, aligned with strobe timings
-        const ctx = new AudioContext();
-        console.log('Playing chirps at frequencies:', derivedChallenge.audioFrequencies);
-
-        const strobeTimesSec = derivedChallenge.strobeTimings
-            .slice(0, derivedChallenge.audioFrequencies.length)
-            .map((ms) => ms / 1000);
-
-        derivedChallenge.audioFrequencies.forEach((freq, i) => {
-            const osc = ctx.createOscillator();
-            osc.connect(ctx.destination);
-            osc.frequency.value = freq;
-
-            const offset = strobeTimesSec[i] ?? i * 1.5;
-            const startTime = ctx.currentTime + offset;
-
-            osc.start(startTime);
-            osc.stop(startTime + 0.1);
-        });
     };
 
     const stopRecording = () => {
@@ -310,6 +332,7 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
             });
 
             const result = await response.json();
+            console.log('[VERIFY] Server response:', JSON.stringify(result, null, 2));
             setVerificationResult(result);
         } catch (error) {
             setVerificationResult({

@@ -24,13 +24,34 @@ def derive_challenge(challenge_hash: str):
         audio_frequencies.append(freq)
     
     # Derive strobe timings (when strobes should appear within 5s recording)
-    strobe_count = 3 + (hash_to_number(clean_hash, 24) % 3)  # 3-5 strobes
+    # Generate 3 strobes with minimum 300ms spacing to ensure audio chirps are detectable
+    strobe_count = 3
+    min_spacing = 300  # Minimum 300ms between chirps
     strobe_timings = []
+    
     for i in range(strobe_count):
-        num = hash_to_number(clean_hash, (i + 3) * 8)
-        # Spread strobes across 5 seconds
-        timing = num % 5000
-        strobe_timings.append(timing)
+        timing = None
+        attempts = 0
+        max_attempts = 100
+        
+        while attempts < max_attempts:
+            num = hash_to_number(clean_hash, (i + 3 + attempts) * 8)
+            # Spread across 5 seconds, leaving room at edges
+            candidate_timing = 200 + (num % 4600)  # Range: 200-4800ms
+            attempts += 1
+            
+            # Check if this timing is far enough from all existing timings
+            is_far_enough = all(
+                abs(candidate_timing - existing) >= min_spacing 
+                for existing in strobe_timings
+            )
+            
+            if is_far_enough or attempts >= max_attempts:
+                timing = candidate_timing
+                break
+        
+        if timing is not None:
+            strobe_timings.append(timing)
     
     strobe_timings.sort()
     

@@ -73,31 +73,72 @@ async def verify_clip(
         matched_audio = []
         matched_strobes = []
         successes = 0
+        
+        # Track which peaks have been used to prevent reuse
+        used_audio_indices = set()
+        used_strobe_indices = set()
 
         for t in expected_times_s:
             if not audio_peaks or not strobe_peaks:
-                break
+                matched_audio.append(None)
+                matched_strobes.append(None)
+                continue
 
-            nearest_audio = min(audio_peaks, key=lambda x: abs(x - t))
-            nearest_strobe = min(strobe_peaks, key=lambda x: abs(x - t))
+            # Find nearest unused audio peak
+            nearest_audio = None
+            nearest_audio_idx = None
+            min_audio_dist = float('inf')
+            for i, peak in enumerate(audio_peaks):
+                if i not in used_audio_indices:
+                    dist = abs(peak - t)
+                    if dist < min_audio_dist:
+                        min_audio_dist = dist
+                        nearest_audio = peak
+                        nearest_audio_idx = i
+            
+            # Find nearest unused strobe peak
+            nearest_strobe = None
+            nearest_strobe_idx = None
+            min_strobe_dist = float('inf')
+            for i, peak in enumerate(strobe_peaks):
+                if i not in used_strobe_indices:
+                    dist = abs(peak - t)
+                    if dist < min_strobe_dist:
+                        min_strobe_dist = dist
+                        nearest_strobe = peak
+                        nearest_strobe_idx = i
 
             ok_here = True
-            if abs(nearest_audio - t) > tolerance_s:
+            if nearest_audio is None or abs(nearest_audio - t) > tolerance_s:
                 ok_here = False
-            if abs(nearest_strobe - t) > tolerance_s:
+            if nearest_strobe is None or abs(nearest_strobe - t) > tolerance_s:
                 ok_here = False
-            if abs(nearest_audio - nearest_strobe) > tolerance_s:
-                ok_here = False
+            if nearest_audio is not None and nearest_strobe is not None:
+                if abs(nearest_audio - nearest_strobe) > tolerance_s:
+                    ok_here = False
 
             matched_audio.append(nearest_audio)
             matched_strobes.append(nearest_strobe)
 
             if ok_here:
                 successes += 1
+                # Mark these peaks as used
+                if nearest_audio_idx is not None:
+                    used_audio_indices.add(nearest_audio_idx)
+                if nearest_strobe_idx is not None:
+                    used_strobe_indices.add(nearest_strobe_idx)
 
-        # Allow one miss: require at least (N - 1) matches, and at least 1 overall.
-        required = max(1, len(expected_times_s) - 1)
+        # Require ALL expected times to match (no misses allowed)
+        required = len(expected_times_s)
         alignment_ok = successes >= required
+
+        print(f"[MATCHING] Expected times: {expected_times_s}")
+        print(f"[MATCHING] Audio peaks: {audio_peaks}")
+        print(f"[MATCHING] Strobe peaks: {strobe_peaks}")
+        print(f"[MATCHING] Matched audio: {matched_audio}")
+        print(f"[MATCHING] Matched strobes: {matched_strobes}")
+        print(f"[MATCHING] Successes: {successes}/{len(expected_times_s)} (required: {required})")
+        print(f"[RESULT] Alignment OK: {alignment_ok}, Verified: {alignment_ok}")
 
         audio_match = alignment_ok
         strobe_match = alignment_ok
