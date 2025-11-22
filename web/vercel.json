@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/:path*",
+            "destination": "http://your-verifier-backend.com/:path*"
+        }
+    ]
+}

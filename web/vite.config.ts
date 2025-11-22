@@ -11,6 +11,11 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: [
+      'localhost',
+      '.ngrok-free.app',
+      '.ngrok.io',
+    ],
     proxy: {
       '/api': {
         target: process.env.VITE_VERIFIER_URL || 'http://localhost:8000',
