@@ -1,25 +1,39 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Square } from 'lucide-react';
+import { Play, Square, Upload } from 'lucide-react';
+
+interface VerificationResult {
+    verified: boolean;
+    challenge?: string;
+    metrics?: any;
+    error?: string;
+}
 
 export const Capture: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [recording, setRecording] = useState(false);
-    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+    const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+    const [verifying, setVerifying] = useState(false);
+    const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
     useEffect(() => {
         async function setupCamera() {
             try {
+                console.log('Setting up camera...');
                 const s = await navigator.mediaDevices.getUserMedia({
                     video: { width: 640, height: 480, facingMode: 'user' },
                     audio: true
                 });
+                console.log('Camera stream acquired:', s);
                 setStream(s);
                 if (videoRef.current) {
                     videoRef.current.srcObject = s;
+                    videoRef.current.play(); // Ensure video plays
+                    console.log('Video element srcObject set and playing');
                 }
             } catch (err) {
                 console.error("Error accessing camera:", err);
@@ -27,9 +41,26 @@ export const Capture: React.FC = () => {
         }
         setupCamera();
         return () => {
+            console.log('Cleanup: stopping stream tracks');
             stream?.getTracks().forEach(track => track.stop());
         };
     }, []);
+
+    // Auto-stop recording after 5 seconds
+    useEffect(() => {
+        if (!recording) return;
+
+        console.log('Setting up 5-second auto-stop timer');
+        const timer = setTimeout(() => {
+            console.log('5 seconds elapsed, auto-stopping recording');
+            stopRecording();
+        }, 5000);
+
+        return () => {
+            console.log('Cleaning up timer');
+            clearTimeout(timer);
+        };
+    }, [recording]);
 
     useEffect(() => {
         let animationFrameId: number;
@@ -37,13 +68,13 @@ export const Capture: React.FC = () => {
         const draw = () => {
             if (videoRef.current && canvasRef.current) {
                 const ctx = canvasRef.current.getContext('2d');
-                if (ctx) {
+                if (ctx && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
                     ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
-                    // Strobe Logic (Placeholder)
+                    // Strobe Logic (Placeholder - simple flashing square)
                     if (recording) {
-                        const time = Date.now() % 1500; // 1.5s loop
-                        if (time < 100) { // Flash for 100ms
+                        const time = Date.now() % 1500;
+                        if (time < 100) {
                             ctx.fillStyle = 'white';
                             ctx.fillRect(100, 100, 200, 200);
                         }
@@ -57,59 +88,107 @@ export const Capture: React.FC = () => {
     }, [recording]);
 
     const startRecording = () => {
-        if (!canvasRef.current) return;
+        if (!canvasRef.current) {
+            console.error('Canvas ref is null');
+            return;
+        }
 
-        // Create a stream from the canvas
+        console.log('Starting recording...');
+        setRecordedBlob(null);
+        setVerificationResult(null);
+        chunksRef.current = [];
+
         const canvasStream = canvasRef.current.captureStream(30);
+        console.log('Canvas stream created:', canvasStream);
 
-        // Add audio track from the original stream
         if (stream) {
-            stream.getAudioTracks().forEach(track => canvasStream.addTrack(track));
+            const audioTracks = stream.getAudioTracks();
+            console.log('Audio tracks:', audioTracks);
+            audioTracks.forEach(track => canvasStream.addTrack(track));
         }
 
         const recorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
+        console.log('MediaRecorder created:', recorder);
 
         recorder.ondataavailable = (e) => {
+            console.log('Data available:', e.data.size, 'bytes');
             if (e.data.size > 0) chunksRef.current.push(e.data);
         };
 
         recorder.onstop = () => {
+            console.log('MediaRecorder stopped. Chunks:', chunksRef.current.length);
             const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'capture.webm';
-            a.click();
-            chunksRef.current = [];
+            console.log('Blob created:', blob.size, 'bytes');
+            console.log('Setting recorded blob and ending recording state...');
+            setRecordedBlob(blob);
+            setRecording(false);
+            console.log('State updated, should trigger re-render with Verify button');
+        };
+
+        recorder.onerror = (e) => {
+            console.error('MediaRecorder error:', e);
         };
 
         recorder.start();
-        setMediaRecorder(recorder);
+        console.log('MediaRecorder started, state:', recorder.state);
+        mediaRecorderRef.current = recorder;
         setRecording(true);
 
-        // Play Audio Chirps (Placeholder)
+        // Play Audio Chirps
         const ctx = new AudioContext();
-        const osc = ctx.createOscillator();
-        osc.connect(ctx.destination);
-        osc.frequency.value = 900;
-        osc.start();
-        osc.stop(ctx.currentTime + 0.1); // 100ms chirp
-
-        // Stop after 5 seconds
-        setTimeout(() => {
-            stopRecording();
-        }, 5000);
+        console.log('Playing chirps...');
+        [900, 1200, 1500].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            osc.connect(ctx.destination);
+            osc.frequency.value = freq;
+            const startTime = ctx.currentTime + i * 1.5;
+            osc.start(startTime);
+            osc.stop(startTime + 0.1);
+        });
     };
 
     const stopRecording = () => {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
+        console.log('stopRecording called');
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            console.log('Stopping mediaRecorder, current state:', mediaRecorderRef.current.state);
+            mediaRecorderRef.current.stop();
+        } else {
+            console.log('MediaRecorder already inactive or null');
         }
-        setRecording(false);
+    };
+
+    const verifyRecording = async () => {
+        if (!recordedBlob) return;
+
+        setVerifying(true);
+        setVerificationResult(null);
+
+        const formData = new FormData();
+        formData.append('file', recordedBlob, 'capture.webm');
+        formData.append('challenge', 'test_challenge_123');
+        formData.append('base_block', '100');
+        formData.append('expires_block', '200');
+
+        try {
+            const response = await fetch('http://localhost:8000/verify', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+            setVerificationResult(result);
+        } catch (error) {
+            setVerificationResult({
+                verified: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+        } finally {
+            setVerifying(false);
+        }
     };
 
     return (
-        <div className="flex flex-col items-center gap-4 p-4">
+        <div className="flex flex-col items-center gap-4 p-4 w-full max-w-4xl">
             <div className="relative border rounded-lg overflow-hidden bg-black">
                 <video ref={videoRef} autoPlay playsInline muted className="hidden" />
                 <canvas ref={canvasRef} width={640} height={480} className="w-full max-w-[640px]" />
@@ -120,15 +199,50 @@ export const Capture: React.FC = () => {
 
             <div className="flex gap-2">
                 {!recording ? (
-                    <Button onClick={startRecording} className="gap-2">
-                        <Play className="w-4 h-4" /> Start Challenge
-                    </Button>
+                    <>
+                        <Button onClick={startRecording} className="gap-2" disabled={!!recordedBlob && !verifying}>
+                            <Play className="w-4 h-4" /> Capture (5s)
+                        </Button>
+                        {recordedBlob && (
+                            <Button onClick={verifyRecording} variant="secondary" className="gap-2" disabled={verifying}>
+                                <Upload className="w-4 h-4" /> {verifying ? 'Verifying...' : 'Verify'}
+                            </Button>
+                        )}
+                    </>
                 ) : (
                     <Button onClick={stopRecording} variant="destructive" className="gap-2">
                         <Square className="w-4 h-4" /> Stop
                     </Button>
                 )}
             </div>
+
+            {verificationResult && (
+                <div className="w-full border rounded-lg p-4 bg-muted">
+                    <h3 className="font-semibold mb-2">Verification Result</h3>
+                    <div className="space-y-2 text-sm font-mono">
+                        <div>
+                            <span className="font-semibold">Status: </span>
+                            <span className={verificationResult.verified ? 'text-green-600' : 'text-red-600'}>
+                                {verificationResult.verified ? '✓ Verified' : '✗ Failed'}
+                            </span>
+                        </div>
+                        {verificationResult.error && (
+                            <div>
+                                <span className="font-semibold">Error: </span>
+                                <span className="text-red-600">{verificationResult.error}</span>
+                            </div>
+                        )}
+                        {verificationResult.metrics && (
+                            <div>
+                                <span className="font-semibold">Debug Info:</span>
+                                <pre className="mt-2 p-2 bg-background rounded text-xs overflow-auto">
+                                    {JSON.stringify(verificationResult.metrics, null, 2)}
+                                </pre>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
