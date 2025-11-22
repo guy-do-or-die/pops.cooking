@@ -62,12 +62,47 @@ async def verify_clip(
         ssim = calculate_ssim(temp_file)
         
         os.remove(audio_path)
-        
-        # Validate that we detected the expected number of signals
-        audio_match = len(audio_peaks) >= len(expected_freqs) - 1  # Allow 1 miss
-        strobe_match = len(strobe_peaks) >= len(expected_strobes) - 1  # Allow 1 miss
-        
-        verified = audio_match and strobe_match
+
+        # Convert expected strobe timings (ms) to seconds to match detected peak units.
+        # Only consider as many expected times as there are audio tones (typically 3)
+        # to avoid over-constraining verification when the challenge has extra strobes.
+        expected_times_s_full = [t / 1000.0 for t in expected_strobes]
+        expected_times_s = expected_times_s_full[: len(expected_freqs)]
+        tolerance_s = 0.6
+
+        matched_audio = []
+        matched_strobes = []
+        successes = 0
+
+        for t in expected_times_s:
+            if not audio_peaks or not strobe_peaks:
+                break
+
+            nearest_audio = min(audio_peaks, key=lambda x: abs(x - t))
+            nearest_strobe = min(strobe_peaks, key=lambda x: abs(x - t))
+
+            ok_here = True
+            if abs(nearest_audio - t) > tolerance_s:
+                ok_here = False
+            if abs(nearest_strobe - t) > tolerance_s:
+                ok_here = False
+            if abs(nearest_audio - nearest_strobe) > tolerance_s:
+                ok_here = False
+
+            matched_audio.append(nearest_audio)
+            matched_strobes.append(nearest_strobe)
+
+            if ok_here:
+                successes += 1
+
+        # Allow one miss: require at least (N - 1) matches, and at least 1 overall.
+        required = max(1, len(expected_times_s) - 1)
+        alignment_ok = successes >= required
+
+        audio_match = alignment_ok
+        strobe_match = alignment_ok
+
+        verified = alignment_ok
         
         return {
             "verified": verified,
@@ -79,6 +114,10 @@ async def verify_clip(
                 "strobe_peaks": strobe_peaks,
                 "expected_strobe_count": len(expected_strobes),
                 "detected_strobe_count": len(strobe_peaks),
+                "matched_audio_peaks": matched_audio,
+                "matched_strobe_peaks": matched_strobes,
+                "expected_strobe_times_s": expected_times_s,
+                "alignment_ok": alignment_ok,
                 "ssim": ssim,
                 "audio_match": audio_match,
                 "strobe_match": strobe_match

@@ -49,6 +49,8 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
         const derived = deriveChallenge(hash);
         setChallengeHash(hash);
         setDerivedChallenge(derived);
+        setRecordedBlob(null);
+        setVerificationResult(null);
         console.log('Generated challenge (local):', { hash, derived });
     };
 
@@ -110,6 +112,8 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
                         const derived = deriveChallenge(newHash);
                         setChallengeHash(newHash);
                         setDerivedChallenge(derived);
+                        setRecordedBlob(null);
+                        setVerificationResult(null);
                         return;
                     }
                 } catch (e) {
@@ -253,14 +257,22 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
         mediaRecorderRef.current = recorder;
         setRecording(true);
 
-        // Play Audio Chirps using derived frequencies
+        // Play Audio Chirps using derived frequencies, aligned with strobe timings
         const ctx = new AudioContext();
         console.log('Playing chirps at frequencies:', derivedChallenge.audioFrequencies);
+
+        const strobeTimesSec = derivedChallenge.strobeTimings
+            .slice(0, derivedChallenge.audioFrequencies.length)
+            .map((ms) => ms / 1000);
+
         derivedChallenge.audioFrequencies.forEach((freq, i) => {
             const osc = ctx.createOscillator();
             osc.connect(ctx.destination);
             osc.frequency.value = freq;
-            const startTime = ctx.currentTime + i * 1.5;
+
+            const offset = strobeTimesSec[i] ?? i * 1.5;
+            const startTime = ctx.currentTime + offset;
+
             osc.start(startTime);
             osc.stop(startTime + 0.1);
         });
