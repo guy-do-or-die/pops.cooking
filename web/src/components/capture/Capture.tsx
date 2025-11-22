@@ -170,7 +170,7 @@ export const Capture: React.FC = () => {
         formData.append('expires_block', '200');
 
         try {
-            const response = await fetch('http://localhost:8000/verify', {
+            const response = await fetch('/api/verify', {
                 method: 'POST',
                 body: formData,
             });
