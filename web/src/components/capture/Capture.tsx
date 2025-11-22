@@ -11,6 +11,8 @@ import { chain } from '@/lib/wagmi';
 interface VerificationResult {
     verified: boolean;
     challenge?: string;
+    ipfs_cid?: string;
+    screenshot_preview?: string;
     metrics?: any;
     error?: string;
 }
@@ -31,6 +33,7 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
     const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
     const [verifying, setVerifying] = useState(false);
     const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+    const [recordingProgress, setRecordingProgress] = useState(false);
     const [challengeHash, setChallengeHash] = useState<string>('');
     const [derivedChallenge, setDerivedChallenge] = useState<DerivedChallenge | null>(null);
     const popAddress = popAddressProp;
@@ -341,6 +344,61 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
         }
     };
 
+    const recordProgressOnChain = async () => {
+        if (!verificationResult?.ipfs_cid || !challengeHash || !popAddress) {
+            console.error('Missing required data for recording progress');
+            return;
+        }
+
+        const wallet = wallets[0];
+        if (!wallet) {
+            alert('Please connect your wallet first');
+            return;
+        }
+
+        setRecordingProgress(true);
+
+        try {
+            const provider = await wallet.getEthereumProvider();
+            const walletClient = createWalletClient({
+                chain,
+                transport: custom(provider)
+            });
+
+            const [address] = await walletClient.getAddresses();
+
+            console.log('[PROGRESS] Recording progress on-chain...');
+            console.log('[PROGRESS] Challenge:', challengeHash);
+            console.log('[PROGRESS] IPFS CID:', verificationResult.ipfs_cid);
+
+            const txHash = await walletClient.writeContract({
+                address: popAddress as `0x${string}`,
+                abi: PopABI,
+                functionName: 'recordProgress',
+                args: [challengeHash as `0x${string}`, verificationResult.ipfs_cid],
+                account: address,
+                chain
+            });
+
+            console.log('[PROGRESS] Transaction sent:', txHash);
+            await publicClient?.waitForTransactionReceipt({ hash: txHash });
+            console.log('[PROGRESS] Progress recorded on-chain!');
+
+            alert('Progress recorded on-chain! 🎉');
+            
+            // Reset for next challenge
+            setRecordedBlob(null);
+            setVerificationResult(null);
+            generateNewChallenge();
+
+        } catch (error) {
+            console.error('[PROGRESS] Error recording progress:', error);
+            alert(`Failed to record progress: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setRecordingProgress(false);
+        }
+    };
+
     return (
         <div className="flex flex-col items-center gap-4 p-4 w-full max-w-4xl">
             {/* Challenge Info */}
@@ -417,6 +475,28 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
                                 {verificationResult.verified ? '✓ Verified' : '✗ Failed'}
                             </span>
                         </div>
+                        {verificationResult.verified && verificationResult.ipfs_cid && (
+                            <div className="space-y-2">
+                                <div>
+                                    <span className="font-semibold">IPFS CID: </span>
+                                    <span className="text-blue-600">{verificationResult.ipfs_cid}</span>
+                                </div>
+                                <Button
+                                    onClick={recordProgressOnChain}
+                                    disabled={recordingProgress}
+                                    className="w-full gap-2"
+                                >
+                                    {recordingProgress ? (
+                                        <>Recording Progress...</>
+                                    ) : (
+                                        <>
+                                            <Upload className="w-4 h-4" />
+                                            Record Progress On-Chain
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        )}
                         {verificationResult.error && (
                             <div>
                                 <span className="font-semibold">Error: </span>
@@ -424,12 +504,12 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
                             </div>
                         )}
                         {verificationResult.metrics && (
-                            <div>
-                                <span className="font-semibold">Debug Info:</span>
+                            <details className="mt-2">
+                                <summary className="font-semibold cursor-pointer">Debug Info</summary>
                                 <pre className="mt-2 p-2 bg-background rounded text-xs overflow-auto">
                                     {JSON.stringify(verificationResult.metrics, null, 2)}
                                 </pre>
-                            </div>
+                            </details>
                         )}
                     </div>
                 </div>
