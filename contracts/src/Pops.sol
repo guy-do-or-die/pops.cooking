@@ -1,80 +1,123 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/proxy/Clones.sol";
+import "./Pop.sol";
 
 /**
  * @title Pops
- * @notice Simple proof-of-progress contract that generates challenges
- * @dev Challenges are derived from block hash to ensure unpredictability
+ * @notice ERC1155 token factory that deploys Pop clones for each token
+ * @dev Each token ID corresponds to one Pop clone for challenge/progress tracking
  */
-contract Pops {
-    event ChallengeGenerated(
-        address indexed user,
-        bytes32 indexed challengeHash,
-        uint256 baseBlock,
-        uint256 expiresBlock
+contract Pops is ERC1155, Ownable {
+    using Clones for address;
+
+    event TokenMinted(
+        uint256 indexed tokenId,
+        address indexed owner,
+        address popClone
     );
 
-    struct Challenge {
-        bytes32 challengeHash;
-        uint256 baseBlock;
-        uint256 expiresBlock;
-    }
+    /// @notice Pop implementation contract for cloning
+    address public immutable popImplementation;
 
-    /// @notice Stores the latest challenge for each user
-    mapping(address => Challenge) public userChallenges;
+    /// @notice Mapping from token ID to Pop clone address
+    mapping(uint256 => address) public tokenToPop;
 
-    /// @notice Duration for which a challenge is valid (in blocks)
-    uint256 public constant CHALLENGE_DURATION = 100;
+    /// @notice Mapping from Pop clone to token ID
+    mapping(address => uint256) public popToToken;
+
+    /// @notice Counter for token IDs
+    uint256 private _nextTokenId;
 
     /**
-     * @notice Generate a new challenge for the caller
-     * @return challengeHash The unique challenge hash
-     * @return baseBlock The block number when challenge was generated
-     * @return expiresBlock The block number when challenge expires
+     * @notice Constructor
+     * @param uri Base URI for token metadata
      */
-    function generateChallenge()
-        external
-        returns (
-            bytes32 challengeHash,
-            uint256 baseBlock,
-            uint256 expiresBlock
-        )
-    {
-        baseBlock = block.number;
-        expiresBlock = baseBlock + CHALLENGE_DURATION;
-        
-        challengeHash = keccak256(
-            abi.encodePacked(
-                blockhash(block.number - 1),
-                msg.sender,
-                block.number,
-                block.timestamp
-            )
-        );
-
-        // Store the challenge
-        userChallenges[msg.sender] = Challenge({
-            challengeHash: challengeHash,
-            baseBlock: baseBlock,
-            expiresBlock: expiresBlock
-        });
-
-        emit ChallengeGenerated(msg.sender, challengeHash, baseBlock, expiresBlock);
-        
-        return (challengeHash, baseBlock, expiresBlock);
+    constructor(string memory uri) ERC1155(uri) Ownable(msg.sender) {
+        // Deploy Pop implementation
+        popImplementation = address(new Pop());
     }
 
     /**
-     * @notice Check if a challenge is still valid
-     * @param baseBlock The block when challenge was created
-     * @param expiresBlock The block when challenge expires
-     * @return isValid True if current block is within valid range
+     * @notice Mint a new token and deploy its Pop clone
+     * @param to Address to mint the token to
+     * @return tokenId The newly minted token ID
+     * @return popClone The address of the deployed Pop clone
      */
-    function isChallengeValid(uint256 baseBlock, uint256 expiresBlock)
-        external
-        view
-        returns (bool isValid)
-    {
-        return block.number >= baseBlock && block.number <= expiresBlock;
+    function mint(address to) external returns (uint256 tokenId, address popClone) {
+        tokenId = _nextTokenId++;
+        
+        // Mint the token
+        _mint(to, tokenId, 1, "");
+
+        // Clone the Pop implementation
+        popClone = popImplementation.clone();
+        
+        // Initialize the clone with the token owner
+        Pop(popClone).initialize(to);
+
+        // Store mappings
+        tokenToPop[tokenId] = popClone;
+        popToToken[popClone] = tokenId;
+
+        emit TokenMinted(tokenId, to, popClone);
+
+        return (tokenId, popClone);
+    }
+
+    /**
+     * @notice Get the Pop clone address for a token ID
+     * @param tokenId The token ID
+     * @return The Pop clone address
+     */
+    function getPopForToken(uint256 tokenId) external view returns (address) {
+        address popClone = tokenToPop[tokenId];
+        require(popClone != address(0), "PopsFactory: token does not exist");
+        return popClone;
+    }
+
+    /**
+     * @notice Get the token ID for a Pop clone address
+     * @param popClone The Pop clone address
+     * @return The token ID
+     */
+    function getTokenForPop(address popClone) external view returns (uint256) {
+        uint256 tokenId = popToToken[popClone];
+        require(tokenToPop[tokenId] == popClone, "PopsFactory: Pop does not exist");
+        return tokenId;
+    }
+
+    /**
+     * @notice Get the owner of a token
+     * @param tokenId The token ID
+     * @return The owner address
+     */
+    function getTokenOwner(uint256 tokenId) external view returns (address) {
+        address popClone = tokenToPop[tokenId];
+        require(popClone != address(0), "PopsFactory: token does not exist");
+        return Pop(popClone).tokenOwner();
+    }
+
+    /**
+     * @notice Record progress for a token (called by verifier)
+     * @param popClone The Pop clone address
+     * @param challengeHash The verified challenge hash
+     */
+    function recordProgress(address popClone, bytes32 challengeHash) external onlyOwner {
+        require(popToToken[popClone] != 0 || tokenToPop[popToToken[popClone]] == popClone, 
+                "PopsFactory: invalid Pop clone");
+        
+        Pop(popClone).recordProgress(challengeHash);
+    }
+
+    /**
+     * @notice Update the base URI
+     * @param newuri The new base URI
+     */
+    function setURI(string memory newuri) external onlyOwner {
+        _setURI(newuri);
     }
 }

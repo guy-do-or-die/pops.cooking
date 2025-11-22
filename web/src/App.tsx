@@ -1,6 +1,8 @@
-import { Capture } from '@/components/capture/Capture';
+import { Route, Switch } from 'wouter';
 import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
+import { Home } from '@/pages/Home';
+import { PopPage } from '@/pages/PopPage';
 
 function App() {
   const { ready, authenticated, login, logout } = usePrivy();
@@ -16,9 +18,16 @@ function App() {
           )
         )}
       </div>
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center">
-        <h1 className="text-4xl font-bold mb-8">Pops.cooking</h1>
-        <Capture disabled={!ready || !authenticated} />
+      <div className="min-h-screen bg-background text-foreground">
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/pop/:address" component={PopPage} />
+          <Route>
+            <div className="flex items-center justify-center min-h-screen">
+              <h1 className="text-2xl">404 - Page Not Found</h1>
+            </div>
+          </Route>
+        </Switch>
       </div>
     </>
   );

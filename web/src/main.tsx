@@ -19,9 +19,6 @@ createRoot(document.getElementById('root')!).render(
         appearance: {
           theme: 'light',
         },
-        embeddedWallets: {
-          createOnLogin: 'users-without-wallets',
-        },
         supportedChains: [chain],
       }}
     >

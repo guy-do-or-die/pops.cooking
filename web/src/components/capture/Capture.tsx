@@ -5,7 +5,7 @@ import { generateChallengeHash, deriveChallenge, type DerivedChallenge } from '@
 import { usePublicClient } from 'wagmi';
 import { useWallets } from '@privy-io/react-auth';
 import { decodeEventLog, createWalletClient, custom } from 'viem';
-import { PopsABI } from '@/lib/PopsABI';
+import { PopABI } from '@/lib/PopABI';
 import { chain } from '@/lib/wagmi';
 
 interface VerificationResult {
@@ -17,9 +17,10 @@ interface VerificationResult {
 
 interface CaptureProps {
     disabled?: boolean;
+    popAddress: string;
 }
 
-export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
+export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddressProp }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -32,13 +33,11 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
     const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
     const [challengeHash, setChallengeHash] = useState<string>('');
     const [derivedChallenge, setDerivedChallenge] = useState<DerivedChallenge | null>(null);
+    const popAddress = popAddressProp;
     const chunksRef = useRef<Blob[]>([]);
 
     const { wallets } = useWallets();
     const publicClient = usePublicClient();
-
-    // Contract address from env
-    const contractAddress = import.meta.env.VITE_POPS_CONTRACT_ADDRESS as `0x${string}` | undefined;
 
     // Generate initial challenge on mount
     useEffect(() => {
@@ -55,9 +54,9 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
         console.log('Generated challenge (local):', { hash, derived });
     };
 
-    const generateChallengeFromContract = async () => {
-        if (!contractAddress || !publicClient) {
-            alert('Contract address or public client not available');
+    const generateChallengeOnPop = async () => {
+        if (!publicClient) {
+            alert('Public client not available');
             return;
         }
 
@@ -70,9 +69,7 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
         try {
             // Switch to Celo Sepolia if needed
             const chainId = `0x${chain.id.toString(16)}`;
-            console.log('Checking chain ID. Wallet:', wallet.chainId, 'Required:', chainId);
             if (wallet.chainId !== chainId) {
-                console.log('Switching chain...');
                 await wallet.switchChain(chain.id);
             }
 
@@ -84,24 +81,25 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
 
             const [address] = await walletClient.getAddresses();
 
-            const hash = await walletClient.writeContract({
-                address: contractAddress,
-                abi: PopsABI,
+            // Generate challenge on Pop clone
+            console.log('Generating challenge on the Pop...');
+            const challengeHash = await walletClient.writeContract({
+                address: popAddress as `0x${string}`,
+                abi: PopABI,
                 functionName: 'generateChallenge',
                 account: address,
                 chain
             });
 
-            console.log('Transaction sent:', hash);
+            console.log('Challenge transaction sent:', challengeHash);
+            const challengeReceipt = await publicClient.waitForTransactionReceipt({ hash: challengeHash });
+            console.log('Challenge confirmed:', challengeReceipt);
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
-            console.log('Transaction confirmed:', receipt);
-
-            // We can just look at the logs and try to decode
-            for (const log of receipt.logs) {
+            // Decode ChallengeGenerated event
+            for (const log of challengeReceipt.logs) {
                 try {
                     const decoded = decodeEventLog({
-                        abi: PopsABI,
+                        abi: PopABI,
                         data: log.data,
                         topics: log.topics,
                     });
@@ -123,13 +121,11 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
             }
 
             console.warn('ChallengeGenerated event not found in logs');
-            // Fallback if event not found (shouldn't happen if tx succeeded)
             generateNewChallenge();
 
         } catch (error) {
             console.error('Error calling contract:', error);
             alert(`Transaction failed: ${error instanceof Error ? error.message : String(error)}`);
-            // Fallback to local generation
             generateNewChallenge();
         }
     };
@@ -314,18 +310,8 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
         if (disabled) {
             return;
         }
-        if (!recordedBlob || !challengeHash || !contractAddress) return;
-
-        // Get user address from wallet
-        const wallet = wallets[0];
-        if (!wallet) {
-            console.error('No wallet connected');
-            return;
-        }
-
-        const userAddress = wallet.address;
-        if (!userAddress) {
-            console.error('No user address found');
+        if (!recordedBlob || !challengeHash || !popAddress) {
+            console.error('Missing required data for verification');
             return;
         }
 
@@ -334,8 +320,7 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
 
         const formData = new FormData();
         formData.append('file', recordedBlob, 'capture.webm');
-        formData.append('contract_address', contractAddress);
-        formData.append('user_address', userAddress);
+        formData.append('pop_address', popAddress);
 
         try {
             const response = await fetch('/api/verify', {
@@ -364,14 +349,14 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
                     <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold">Challenge Hash:</span>
                         <Button
-                            onClick={() => wallets.length > 0 && contractAddress ? generateChallengeFromContract() : generateNewChallenge()}
+                            onClick={() => wallets.length > 0 ? generateChallengeOnPop() : generateNewChallenge()}
                             variant="ghost"
                             size="sm"
                             className="gap-1 h-7"
                             disabled={disabled || recording || verifying}
                         >
                             <RefreshCw className="w-3 h-3" />
-                            {wallets.length > 0 && contractAddress ? 'From Contract' : 'New'}
+                            {wallets.length > 0 ? 'Generate' : 'New'}
                         </Button>
                     </div>
                     <div className="font-mono text-xs break-all opacity-70">{challengeHash}</div>
@@ -381,8 +366,7 @@ export const Capture: React.FC<CaptureProps> = ({ disabled }) => {
                     {/* Debug Info */}
                     <div className="mt-2 text-[10px] opacity-50 border-t pt-1">
                         Wallet: {wallets.length > 0 ? 'Connected' : 'No'} |
-                        Contract: {contractAddress ? 'Set' : 'Missing'} |
-                        Addr: {contractAddress?.slice(0, 6)}...
+                        Pop: {popAddress.slice(0, 6)}...{popAddress.slice(-4)}
                     </div>
                 </div>
             )}

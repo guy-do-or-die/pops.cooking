@@ -16,16 +16,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Contract ABI for reading userChallenges
-CONTRACT_ABI = json.loads('''[
+# Pop contract ABI for reading challenges
+POP_ABI = json.loads('''[
     {
-        "inputs": [{"internalType": "address", "name": "", "type": "address"}],
-        "name": "userChallenges",
+        "inputs": [],
+        "name": "currentChallenge",
         "outputs": [
             {"internalType": "bytes32", "name": "challengeHash", "type": "bytes32"},
             {"internalType": "uint256", "name": "baseBlock", "type": "uint256"},
             {"internalType": "uint256", "name": "expiresBlock", "type": "uint256"}
         ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "tokenOwner",
+        "outputs": [{"internalType": "address", "name": "", "type": "address"}],
         "stateMutability": "view",
         "type": "function"
     }
@@ -46,19 +53,20 @@ def health_check():
 @app.post("/verify")
 async def verify_clip(
     file: UploadFile = File(...),
-    contract_address: str = Form(...),
-    user_address: str = Form(...)
+    pop_address: str = Form(...)
 ):
-    # Fetch challenge from contract
+    # Fetch challenge from Pop clone
     try:
-        contract = w3.eth.contract(
-            address=Web3.to_checksum_address(contract_address),
-            abi=CONTRACT_ABI
+        pop_contract = w3.eth.contract(
+            address=Web3.to_checksum_address(pop_address),
+            abi=POP_ABI
         )
         
-        challenge_data = contract.functions.userChallenges(
-            Web3.to_checksum_address(user_address)
-        ).call()
+        # Get token owner
+        token_owner = pop_contract.functions.tokenOwner().call()
+        
+        # Get current challenge
+        challenge_data = pop_contract.functions.currentChallenge().call()
         
         challenge_hash = challenge_data[0].hex()
         base_block = challenge_data[1]
@@ -66,7 +74,7 @@ async def verify_clip(
         
         # Verify challenge exists
         if challenge_hash == '0x' + '00' * 32:
-            raise HTTPException(status_code=400, detail="No challenge found for user")
+            raise HTTPException(status_code=400, detail="No challenge found for this token")
         
         # Verify block validity
         current_block = w3.eth.block_number
@@ -76,12 +84,13 @@ async def verify_clip(
                 detail=f"Challenge expired. Current block: {current_block}, Valid range: {base_block}-{expires_block}"
             )
         
-        print(f"[CONTRACT] Fetched challenge for {user_address}")
-        print(f"[CONTRACT] Challenge hash: 0x{challenge_hash}")
-        print(f"[CONTRACT] Block range: {base_block}-{expires_block} (current: {current_block})")
+        print(f"[POP] Pop clone: {pop_address}")
+        print(f"[POP] Token owner: {token_owner}")
+        print(f"[POP] Challenge hash: 0x{challenge_hash}")
+        print(f"[POP] Block range: {base_block}-{expires_block} (current: {current_block})")
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch challenge from contract: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch challenge from Pop clone: {str(e)}")
     
     temp_file = f"temp_{file.filename}"
     with open(temp_file, "wb") as buffer:

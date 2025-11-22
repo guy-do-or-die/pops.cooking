@@ -15,7 +15,7 @@ if [ -z "$ETHERSCAN_API_KEY" ]; then
 fi
 
 # Run deployment with verification using Foundry's built-in Etherscan flow
-echo "Deploying and verifying Pops contract on Celo Sepolia..."
+echo "Deploying and verifying Pops factory contract on Celo Sepolia..."
 
 # Run deployment and capture output
 OUTPUT_FILE="deployment_output.txt"
@@ -31,8 +31,8 @@ forge script script/Deploy.s.sol:DeployPops \
     #--etherscan-api-key $ETHERSCAN_API_KEY \
 
 # Extract new contract address
-# Expected output format: "0: contract Pops 0x..."
-NEW_ADDRESS=$(grep "0: contract Pops" $OUTPUT_FILE | awk '{print $4}')
+# Expected output format: "Pops deployed at: 0x..."
+NEW_ADDRESS=$(grep "Pops deployed at:" $OUTPUT_FILE | awk '{print $4}')
 
 if [ -n "$NEW_ADDRESS" ]; then
     echo "New Contract Address: $NEW_ADDRESS"
@@ -45,8 +45,8 @@ if [ -n "$NEW_ADDRESS" ]; then
     fi
     echo "Updated contracts/.env"
 
-    # Update web/.env.local
-    WEB_ENV="../web/.env.local"
+    # Update web/.env
+    WEB_ENV="../web/.env"
     if [ -f "$WEB_ENV" ]; then
         if grep -q "VITE_POPS_CONTRACT_ADDRESS=" $WEB_ENV; then
             sed -i "s/VITE_POPS_CONTRACT_ADDRESS=.*/VITE_POPS_CONTRACT_ADDRESS=$NEW_ADDRESS/" $WEB_ENV
@@ -56,6 +56,17 @@ if [ -n "$NEW_ADDRESS" ]; then
         echo "Updated $WEB_ENV"
     else
         echo "Warning: $WEB_ENV not found"
+    fi
+
+    # Update web/.env.local if it exists (overrides .env)
+    WEB_ENV_LOCAL="../web/.env.local"
+    if [ -f "$WEB_ENV_LOCAL" ]; then
+        if grep -q "VITE_POPS_CONTRACT_ADDRESS=" $WEB_ENV_LOCAL; then
+            sed -i "s/VITE_POPS_CONTRACT_ADDRESS=.*/VITE_POPS_CONTRACT_ADDRESS=$NEW_ADDRESS/" $WEB_ENV_LOCAL
+        else
+            echo "VITE_POPS_CONTRACT_ADDRESS=$NEW_ADDRESS" >> $WEB_ENV_LOCAL
+        fi
+        echo "Updated $WEB_ENV_LOCAL"
     fi
 
     echo "Running verification script..."
