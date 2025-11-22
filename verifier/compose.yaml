@@ -1,0 +1,16 @@
+services:
+  pops-verifier:
+    build: .
+    image: "docker.io/idkwtflol/pops"
+    platform: linux/amd64
+    ports:
+      - "8000:8000"
+    volumes:
+      - my-volume:/root/.my-volume              # Persistent per-machine storage.
+      - /run/rofl-appd.sock:/run/rofl-appd.sock # appd REST API.
+    environment:
+      - MY_SECRET_1=${MY_SECRET_1}              # See `oasis rofl secret` command.
+      - MY_SECRET_2=${MY_SECRET_2}
+
+volumes:
+  my-volume:

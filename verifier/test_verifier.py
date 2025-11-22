@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
-import soundfile as sf
 import os
+from scipy.io import wavfile
 from audio import detect_chirps
 from video import detect_strobes
 
@@ -22,8 +22,9 @@ def generate_test_assets():
         end_idx = int((time + 0.1) * sr)
         segment_t = t[start_idx:end_idx]
         audio[start_idx:end_idx] += 0.5 * np.sin(2 * np.pi * freqs[i] * segment_t)
-        
-    sf.write('test.wav', audio, sr)
+
+    # Write test audio using scipy instead of soundfile
+    wavfile.write("test.wav", sr, audio.astype(np.float32))
     print("Generated test.wav")
     
     # Generate Video with strobes
