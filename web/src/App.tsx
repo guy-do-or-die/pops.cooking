@@ -29,25 +29,23 @@ function App() {
       )}
 
       {/* Content - Centered on Desktop */}
-      <main className="w-full flex justify-center">
-        <div className="w-full max-w-6xl">
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/pop/:address" component={PopPage} />
-            <Route path="/pop/:address/progress">
-              {(params) => <ProgressPage popAddress={params.address} />}
-            </Route>
-            <Route>
-              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] text-center px-6 py-12">
-                <span className="text-7xl mb-6 leading-none">🫧</span>
-                <h1 className="text-2xl font-semibold mb-3 tracking-tight">Page not found</h1>
-                <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline">
-                  Go home
-                </Link>
-              </div>
-            </Route>
-          </Switch>
-        </div>
+      <main className="w-full">
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/pop/:address" component={PopPage} />
+          <Route path="/pop/:address/progress">
+            {(params) => <ProgressPage popAddress={params.address} />}
+          </Route>
+          <Route>
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] text-center px-6 py-12">
+              <span className="text-7xl mb-6 leading-none">🫧</span>
+              <h1 className="text-2xl font-semibold mb-3 tracking-tight">Page not found</h1>
+              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline">
+                Go home
+              </Link>
+            </div>
+          </Route>
+        </Switch>
       </main>
     </div>
   );

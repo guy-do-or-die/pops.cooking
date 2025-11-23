@@ -2,6 +2,12 @@
   "name": "pops",
   "version": "0.0.1",
   "type": "module",
+  "browserslist": [
+    "iOS >= 12",
+    "Safari >= 12",
+    "Chrome >= 90",
+    "Firefox >= 88"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

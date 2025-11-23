@@ -105,7 +105,8 @@ View on [Celo Sepolia Explorer](https://celo-sepolia.blockscout.com/address/0xE4
 ✅ Filecoin storage via Synapse SDK  
 ✅ On-chain progress recording with IPFS CIDs  
 ✅ Auto-generated challenges on mint  
-✅ **TEE-derived wallet** for secure Filecoin payments (no private key storage)
+✅ **TEE-derived wallet** for secure Filecoin payments (no private key storage)  
+✅ **iPhone/Mobile compatible** - 200ms flashes, 700ms tolerance, auto-exposure filtering
 
 ## Security Architecture
 
@@ -118,6 +119,14 @@ Screenshots are verified and uploaded to Filecoin entirely **within the ROFL TEE
 4. **IPFS CID** returned to user for on-chain recording
 
 This ensures screenshots cannot be tampered with - they're uploaded directly from the trusted environment.
+
+## Mobile/iPhone Compatibility
+
+See [IPHONE_COMPAT.md](./IPHONE_COMPAT.md) for details on mobile optimizations including:
+- 200ms flash duration for video compression resilience
+- 700ms audio/video sync tolerance
+- Auto-exposure artifact filtering
+- iOS Safari compatibility (playsinline, autoplay, muted)
 
 ## License
 

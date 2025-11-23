@@ -71,10 +71,10 @@ def detect_strobes(video_path: str, roi: Tuple[int, int, int, int]) -> List[floa
     print(f"[VIDEO] Raw peaks detected: {len(peaks)} at frames {peaks.tolist()}")
 
     times = (peaks / fps) if fps > 0 else peaks
-    # Allow early challenge strobes; only drop the very first few frames (<100ms)
-    filtered = [float(t) for t in times if t > 0.1]
+    # Ignore first 500ms to filter auto-exposure artifacts on mobile (especially iPhone)
+    filtered = [float(t) for t in times if t > 0.5]
     
-    print(f"[VIDEO] Filtered strobes (>0.1s): {[f'{t:.3f}s' for t in filtered]}")
+    print(f"[VIDEO] Filtered strobes (>0.5s, ignoring auto-exposure startup): {[f'{t:.3f}s' for t in filtered]}")
 
     return sorted(filtered)
 

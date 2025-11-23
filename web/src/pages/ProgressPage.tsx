@@ -88,7 +88,7 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
   }
 
   return (
-    <div className="w-full px-6 py-12">
+    <div className="w-full px-6 py-12 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-12 flex items-center justify-between">
         <Link href={`/pop/${popAddress}`}>
@@ -116,7 +116,7 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
           <span className="text-7xl mb-8 block leading-none">🫧</span>
           <p className="text-lg text-muted-foreground mb-8 leading-relaxed">No PoPs yet</p>
           <Link href={`/pop/${popAddress}`}>
-            <button className="flex items-center gap-2 rounded-full px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all bg-black hover:bg-black/90 text-white border-0">
+            <button className="inline-flex items-center gap-2 rounded-full px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all bg-black hover:bg-black/90 text-white border-0 mx-auto">
               <span className="text-xl">🫧</span>
               Create your first PoP
             </button>

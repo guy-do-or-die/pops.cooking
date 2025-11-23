@@ -265,7 +265,8 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress }) => {
                     const elapsed = performance.now() - recordingStartTime.current;
                     for (let i = 0; i < state.derivedChallenge.strobeTimings.length; i++) {
                         const timing = state.derivedChallenge.strobeTimings[i];
-                        if (Math.abs(elapsed - timing) < 50) {
+                        // Use 200ms flash duration to survive mobile video compression (iPhone compatible)
+                        if (Math.abs(elapsed - timing) < 200) {
                             ctx.fillStyle = 'white';
                             ctx.fillRect(100, 100, 200, 200);
                         }

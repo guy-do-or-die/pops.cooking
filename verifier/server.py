@@ -313,7 +313,8 @@ async def verify_clip(
         # to avoid over-constraining verification when the challenge has extra strobes.
         expected_times_s_full = [t / 1000.0 for t in expected_strobes]
         expected_times_s = expected_times_s_full[: len(expected_freqs)]
-        tolerance_s = 0.6
+        # Use 700ms tolerance for mobile audio/video desync (iPhone compatible)
+        tolerance_s = 0.7
 
         matched_audio = []
         matched_strobes = []

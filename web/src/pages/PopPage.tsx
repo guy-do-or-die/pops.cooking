@@ -20,9 +20,9 @@ export const PopPage: React.FC = () => {
     }
 
     return (
-        <div className="w-full px-6 py-12">
+        <div className="w-full px-6 py-12 max-w-2xl mx-auto">
             {/* Top Nav */}
-            <div className="flex items-center justify-end mb-12 max-w-2xl mx-auto">
+            <div className="flex items-center justify-end mb-12">
                 <Link href={`/pop/${popAddress}/progress`}>
                     <button className="flex items-center gap-2 rounded-full font-medium bg-transparent hover:bg-gray-100 text-gray-700 border-0 px-4 py-2 text-sm transition-colors">
                         <History className="h-4 w-4" />
@@ -31,18 +31,15 @@ export const PopPage: React.FC = () => {
                 </Link>
             </div>
 
-            {/* Centered Content */}
-            <div className="max-w-2xl mx-auto">
-                {/* Address Info */}
-                <div className="mb-10 text-center">
-                    <div className="text-xs font-mono text-muted-foreground/50 tracking-wider">
-                        {popAddress.slice(0, 6)}...{popAddress.slice(-4)}
-                    </div>
+            {/* Address Info */}
+            <div className="mb-10 text-center">
+                <div className="text-xs font-mono text-muted-foreground/50 tracking-wider">
+                    {popAddress.slice(0, 6)}...{popAddress.slice(-4)}
                 </div>
-
-                {/* Capture Component */}
-                <Capture popAddress={popAddress} />
             </div>
+
+            {/* Capture Component */}
+            <Capture popAddress={popAddress} />
         </div>
     );
 };

@@ -65,6 +65,11 @@ deployments:
         - any: {}
       fees: endorsing_node
       max_expiration: 3
+    secrets:
+      - name: PINATA_JWT
+        value: pGJwa1ggKdNfff4KsGRIA+U/I+aZN9uStdJJQrbjNRTP/tn6AiBkbmFtZVgakfrHsbrqXgbTfnlWkzax66HPQOQdBCFTpsRlbm9uY2VPD+Cx5Bbqs3Fzj2qTN9IDZXZhbHVlWQLAz0xErlRfDJSujRUCFPlxj8F1UqxXSllbsjXmRCcm76BOgPLJQ0GcxwgGHHwdrYov5vB60p/fimkEotqjc9ZbSjDxaKR+XqAyfoVKKY7GmtqHGaBZmxUfZdmAwzki8QVEpXsXnltic9uXvR4YMRcXN+pXsnHHsRsESAJDj2Rx+gp+he4CPQqsN2MvfSVCAEtNTUtaX2dWqghcKBegZRZUHfECqiRnCL/Eo/8d5SNqfWwer4qNNC8T6WhBWHfD4REBfuuf4fJ6duDGPVLNxBUpbLMYgpsB4m6ugWFhsx9QsTjjhSe8W0tWHAPJkteMah1aSZehMwY+Yadx9HD9+wUsEywAiM+zzl8bhj1bz5B7xwhHrpBqtEq1ibaFOL9Hc7Z+VkpaTcRui606+ZSDxwqqh7aFlrqlXL52CYUzF1HVlUbJoM0DXJM7stXjhWdAxg/nuHchone900lF6WIwANud8eDJG10NOxLiS6+Fp3Vb4EiF+mXBc6/0IYUjwV2Ts+bBaI9Y2i/CIq5IaKTiG1Y9kUXQVO0Aqj85HTyh0MViUoE6DqMJqYtJeE0TSLztXsQOO/UzfPmLDu5iqKlFD0aePt5UrpGj6dGx1TDFyUoeLS40FqnHiNtyopyknyW1a2jcmayz4C1rFbJsQoYTlhZZpfWtr75+dODeXWZKDnWdtY5U5Gmz6iQbGTF7T3o3oq4CK+iSfj0j3BTDmli9A6Tpb4CCLgJA45iHqi/FRNMBN2Vjh+qORzWH4vtxch4ct8gXPyvMqAAhqMxqHR9NAzN265gK/m4B30XQFNOx0rGtzvjJTMJ03qNkZ8+MYaQe5gxZnZAbd8M79c0uhstNSX30kZ45L+fjtnMUeB6UTn+ZFrwS1ooeLXBlkciKmmI1AKCf8CwzvjVvhR8iONAGKLe2jLMKT7l9Y47Bb12NL6HwSz0=
+      - name: FILECOIN_PRIVATE_KEY
+        value: pGJwa1ggkBpWK/KQ/sd3+U9hfyPoOo09saifsdxTSO4nduvCIytkbmFtZVgkuffM+ro6kGNncV0KD+X/aF3Tr3xvNm6SWTYJ5tK5DYf4LQDsZW5vbmNlT+aDtCYUW0QTEa0R/dhYR2V2YWx1ZVhSbqRPfnvZte1fN1F7NCCBTBfcISodB0OCUIiHYpuNZUuhDT99CFedN+PCgYtwjB+xk49w8wG736/zt6fLG/1e0RSwT0EMN22NI4uDSE+pv7b9+Q==
     machines:
       default:
         provider: oasis1qp2ens0hsp7gh23wajxa4hpetkdek3swyyulyrmz

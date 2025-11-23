@@ -53,7 +53,8 @@ export const Home: React.FC = () => {
                 functionName: 'mint',
                 args: [address],
                 account: address,
-                chain
+                chain,
+                gas: 1500000n // Explicit gas limit for complex operation
             });
 
             console.log('Mint transaction sent:', mintHash);
@@ -61,6 +62,9 @@ export const Home: React.FC = () => {
             console.log('Mint confirmed!', receipt);
             console.log('Receipt logs count:', receipt.logs.length);
             console.log('Receipt status:', receipt.status);
+            
+            // Wait a bit for logs to propagate (helps with public RPCs)
+            await new Promise(resolve => setTimeout(resolve, 2000));
             
             // Decode the TokenMinted event from logs
             let newPopAddress: string | null = null;
@@ -90,14 +94,40 @@ export const Home: React.FC = () => {
                 }
             }
 
-            // Fallback: if no events, read from contract using tokenToPop mapping
-            // The transaction succeeded, so a token was minted. We need to find which one.
+            // Fallback: if no events, refetch receipt and try again
             if (!newPopAddress) {
-                console.log('No events found, reading from contract...');
+                console.log('No events found, refetching receipt...');
                 
-                // Get the user's balance to find their token IDs
-                // Since we just minted, try reading the most recent token (ID 0, 1, 2, etc.)
-                // This is not perfect but works for testing
+                // Wait a bit more and refetch
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                const freshReceipt = await publicClient.getTransactionReceipt({ hash: mintHash });
+                
+                if (freshReceipt.logs && freshReceipt.logs.length > 0) {
+                    for (const log of freshReceipt.logs) {
+                        try {
+                            const decoded = decodeEventLog({
+                                abi: PopsFactoryABI,
+                                data: log.data,
+                                topics: log.topics,
+                            });
+                            if (decoded.eventName === 'TokenMinted') {
+                                newTokenId = decoded.args.tokenId;
+                                newPopAddress = decoded.args.popClone;
+                                console.log('Found on refetch:', { tokenId: newTokenId, popClone: newPopAddress });
+                                break;
+                            }
+                        } catch (e) {
+                            // Not our event
+                        }
+                    }
+                }
+            }
+            
+            // Final fallback: read from contract using tokenToPop mapping
+            if (!newPopAddress) {
+                console.log('Still no events, reading from contract...');
+                
+                // Try the most recent 10 tokens
                 for (let tokenId = 0n; tokenId < 10n; tokenId++) {
                     try {
                         const popAddr = await publicClient.readContract({
@@ -156,7 +186,7 @@ export const Home: React.FC = () => {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] px-6 py-16">
-            <div className="w-full text-center">
+            <div className="w-full max-w-2xl text-center">
                 {/* Hero */}
                 <div className="space-y-6 mb-12">
                     <div className="mb-8 flex justify-center">
