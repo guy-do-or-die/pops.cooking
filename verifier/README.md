@@ -19,6 +19,40 @@ This is the easiest way to debug and iterate on the verifier logic.
 
 - Python 3.11+
 - `ffmpeg` installed and available on `PATH`.
+- Node.js 20+ (for IPFS uploader service)
+- Filecoin Calibration testnet wallet with test tokens (for real uploads)
+
+### Setup Filecoin IPFS Uploads (via Synapse SDK)
+
+The verifier uploads verified screenshots to **Filecoin** using the **Synapse SDK**.
+
+Since Synapse SDK is JavaScript-only and the verifier is Python, we run a separate Node.js microservice (`../uploader/`) that the verifier calls via HTTP.
+
+**To enable real Filecoin uploads:**
+
+1. **Get test tokens** for Filecoin Calibration testnet:
+   - Test FIL: https://faucet.calibnet.chainsafe-fil.io/funds.html
+   - Test USDFC: https://forest-explorer.chainsafe.dev/faucet/calibnet_usdfc
+
+2. **Configure the uploader service:**
+   ```bash
+   cd uploader
+   npm install
+   cp .env.example .env
+   # Edit .env and add your Filecoin private key:
+   # FILECOIN_PRIVATE_KEY=0x...
+   ```
+
+3. **Start the uploader service** (in a separate terminal):
+   ```bash
+   cd uploader
+   npm start
+   # Runs on port 3001
+   ```
+
+**Without the uploader service**, the verifier will generate mock CIDs (for testing).
+
+**Note**: In TEE deployment, both services run together in the same ROFL container - the uploader ensures screenshots are uploaded to Filecoin from within the trusted environment.
 
 ### Steps
 
@@ -40,6 +74,13 @@ Check that the server is up:
 ```bash
 curl http://localhost:8000/health
 # -> {"status": "ok", "tee_mode": true}
+```
+
+Get the uploader wallet address (for funding):
+
+```bash
+curl http://localhost:8000/wallet
+# -> {"address": "0x...", "faucets": {...}, "explorer": "..."}
 ```
 
 You can now hit `/verify` directly (see the web app section below for how it calls the API).

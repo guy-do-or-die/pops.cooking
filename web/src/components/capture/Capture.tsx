@@ -7,6 +7,7 @@ import { useWallets } from '@privy-io/react-auth';
 import { decodeEventLog, createWalletClient, custom } from 'viem';
 import { PopABI } from '@/lib/PopABI';
 import { chain } from '@/lib/wagmi';
+import { useLocation } from 'wouter';
 
 interface VerificationResult {
     verified: boolean;
@@ -38,14 +39,57 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
     const [derivedChallenge, setDerivedChallenge] = useState<DerivedChallenge | null>(null);
     const popAddress = popAddressProp;
     const chunksRef = useRef<Blob[]>([]);
-
-    const { wallets } = useWallets();
     const publicClient = usePublicClient();
+    const { wallets } = useWallets();
+    const [, setLocation] = useLocation();
 
-    // Generate initial challenge on mount
+    // Fetch existing challenge from Pop contract on mount
     useEffect(() => {
-        generateNewChallenge();
-    }, []);
+        fetchChallengeFromContract();
+    }, [popAddress, publicClient]);
+
+    const fetchChallengeFromContract = async (retryCount = 0) => {
+        if (!publicClient || !popAddress) {
+            console.log('Cannot fetch challenge: missing publicClient or popAddress');
+            return;
+        }
+
+        try {
+            console.log(`[CHALLENGE] Fetching existing challenge from Pop contract... (attempt ${retryCount + 1}/3)`);
+            
+            const challenge = await publicClient.readContract({
+                address: popAddress as `0x${string}`,
+                abi: PopABI,
+                functionName: 'currentChallenge',
+            }) as any;
+
+            console.log('[CHALLENGE] Raw challenge from contract:', challenge);
+
+            // Challenge structure: [challengeHash, baseBlock, expiresBlock]
+            const hash = challenge[0] as string;
+
+            if (hash && hash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+                console.log('[CHALLENGE] Found existing challenge:', hash);
+                const derived = deriveChallenge(hash);
+                setChallengeHash(hash);
+                setDerivedChallenge(derived);
+                console.log('[CHALLENGE] Loaded challenge from contract:', { hash, derived });
+            } else {
+                console.warn('[CHALLENGE] No valid challenge found in contract, generating local challenge');
+                generateNewChallenge();
+            }
+        } catch (error) {
+            // Expected for newly created contracts - RPC needs time to sync
+            if (retryCount < 2) {
+                console.log(`[CHALLENGE] Contract not ready yet, retrying in ${(retryCount + 1) * 1000}ms... (attempt ${retryCount + 1}/3)`);
+                setTimeout(() => fetchChallengeFromContract(retryCount + 1), (retryCount + 1) * 1000);
+            } else {
+                console.warn('[CHALLENGE] Contract still not ready after 3 attempts. RPC may be slow.');
+                console.warn('[CHALLENGE] Generating local challenge as fallback.');
+                generateNewChallenge();
+            }
+        }
+    };
 
     const generateNewChallenge = () => {
         const hash = generateChallengeHash();
@@ -384,12 +428,8 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
             await publicClient?.waitForTransactionReceipt({ hash: txHash });
             console.log('[PROGRESS] Progress recorded on-chain!');
 
-            alert('Progress recorded on-chain! 🎉');
-            
-            // Reset for next challenge
-            setRecordedBlob(null);
-            setVerificationResult(null);
-            generateNewChallenge();
+            // Redirect to progress page to view all recordings
+            setLocation(`/pop/${popAddress}/progress`);
 
         } catch (error) {
             console.error('[PROGRESS] Error recording progress:', error);
@@ -479,7 +519,10 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
                             <div className="space-y-2">
                                 <div>
                                     <span className="font-semibold">IPFS CID: </span>
-                                    <span className="text-blue-600">{verificationResult.ipfs_cid}</span>
+                                    <span className="text-blue-600 font-mono text-sm break-all">{verificationResult.ipfs_cid}</span>
+                                </div>
+                                <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
+                                    ⚠️ <strong>Mock CID</strong> - Screenshot not uploaded to IPFS yet. Real Synapse SDK upload requires configuration.
                                 </div>
                                 <Button
                                     onClick={recordProgressOnChain}

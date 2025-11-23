@@ -3,6 +3,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
 import { Home } from '@/pages/Home';
 import { PopPage } from '@/pages/PopPage';
+import { ProgressPage } from '@/pages/ProgressPage';
 
 function App() {
   const { ready, authenticated, login, logout } = usePrivy();
@@ -22,6 +23,9 @@ function App() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/pop/:address" component={PopPage} />
+          <Route path="/pop/:address/progress">
+            {(params) => <ProgressPage popAddress={params.address} />}
+          </Route>
           <Route>
             <div className="flex items-center justify-center min-h-screen">
               <h1 className="text-2xl">404 - Page Not Found</h1>

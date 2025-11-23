@@ -2,7 +2,7 @@ import React from 'react';
 import { useRoute } from 'wouter';
 import { Capture } from '@/components/capture/Capture';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, History } from 'lucide-react';
 import { Link } from 'wouter';
 
 export const PopPage: React.FC = () => {
@@ -28,11 +28,17 @@ export const PopPage: React.FC = () => {
     return (
         <div className="min-h-screen p-4">
             <div className="max-w-4xl mx-auto">
-                <div className="mb-4">
+                <div className="mb-4 flex items-center justify-between">
                     <Link href="/">
                         <Button variant="ghost" size="sm">
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back
+                        </Button>
+                    </Link>
+                    <Link href={`/pop/${popAddress}/progress`}>
+                        <Button variant="outline" size="sm">
+                            <History className="mr-2 h-4 w-4" />
+                            View Progress
                         </Button>
                     </Link>
                 </div>

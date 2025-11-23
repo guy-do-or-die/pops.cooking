@@ -7,3 +7,5 @@ numpy==1.26.3
 scipy==1.11.4
 soundfile==0.12.1
 web3==6.15.1
+requests==2.31.0
+python-dotenv==1.0.0
