@@ -155,58 +155,58 @@ export const Home: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4">
-            <div className="max-w-2xl w-full space-y-8 text-center">
-                <div>
-                    <h1 className="text-4xl font-bold mb-4">Pops</h1>
-                    <p className="text-lg text-muted-foreground mb-8">
-                        Proof of Progress System - Mint your token to get started
+        <div className="flex flex-col items-center justify-center min-h-[85vh] px-4 py-12">
+            <div className="max-w-md w-full space-y-8 text-center">
+                {/* Hero */}
+                <div className="space-y-4">
+                    <div className="text-8xl mb-6 animate-in fade-in duration-1000">🫧</div>
+                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                        Proof of Progress
+                    </h1>
+                    <p className="text-lg text-muted-foreground max-w-sm mx-auto">
+                        Snap verifiable moments. Seal them on-chain.
                     </p>
                 </div>
 
-                <div className="border rounded-lg p-8 bg-card">
-                    <h2 className="text-2xl font-semibold mb-4">Get Started</h2>
-                    <p className="text-muted-foreground mb-6">
-                        Mint an ERC1155 token to create your personal Pop clone for tracking challenges and progress.
-                    </p>
-                    
+                {/* CTA */}
+                <div className="pt-8">
                     {wallets.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            Please connect your wallet to continue
-                        </p>
+                        <div className="space-y-3">
+                            <p className="text-sm text-muted-foreground">
+                                Connect your wallet to get started
+                            </p>
+                            <div className="text-xs text-muted-foreground/60">
+                                ↗ Use the button above
+                            </div>
+                        </div>
                     ) : (
                         <Button 
                             onClick={mintToken} 
                             disabled={minting || !contractAddress}
                             size="lg"
-                            className="w-full max-w-xs"
+                            className="rounded-full px-8 py-6 text-base font-medium shadow-lg hover:shadow-xl transition-all"
                         >
                             {minting ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Minting...
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    Creating your PoP...
                                 </>
                             ) : (
-                                'Mint Token'
+                                <>
+                                    <span className="mr-2">🫧</span>
+                                    Create your PoP
+                                </>
                             )}
                         </Button>
                     )}
-
-                    {contractAddress && (
-                        <p className="text-xs text-muted-foreground mt-4">
-                            Contract: {contractAddress.slice(0, 6)}...{contractAddress.slice(-4)}
-                        </p>
-                    )}
                 </div>
 
-                <div className="text-sm text-muted-foreground">
-                    <p>Each token gets its own Pop clone for:</p>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                        <li>Generating unique challenges</li>
-                        <li>Recording verified progress</li>
-                        <li>Tracking your journey</li>
-                    </ul>
-                </div>
+                {/* Footer info */}
+                {contractAddress && (
+                    <div className="pt-8 text-xs text-muted-foreground/50 font-mono">
+                        {contractAddress.slice(0, 6)}...{contractAddress.slice(-4)}
+                    </div>
+                )}
             </div>
         </div>
     );

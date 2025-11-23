@@ -605,105 +605,70 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress }) => {
     const buttonConfig = getButtonConfig();
 
     return (
-        <div className="flex flex-col items-center gap-4 p-4 w-full max-w-4xl">
-            {/* Challenge Info */}
-            {state.challengeHash && state.derivedChallenge && (
-                <div className="w-full border rounded-lg p-3 bg-muted text-sm">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold">Challenge Hash:</span>
-                    </div>
-                    <div className="font-mono text-xs break-all opacity-70">{state.challengeHash}</div>
-                    <div className="mt-2 text-xs opacity-60">
-                        Freqs: {state.derivedChallenge.audioFrequencies.map(f => f.toFixed(0)).join(', ')} Hz
-                    </div>
-                    <div className="mt-2 text-[10px] opacity-50 border-t pt-1">
-                        Wallet: {wallets.length > 0 ? 'Connected' : 'No'} |
-                        Pop: {popAddress.slice(0, 6)}...{popAddress.slice(-4)}
-                    </div>
-                </div>
-            )}
-
+        <div className="flex flex-col items-center gap-6 w-full">
             {/* Video/Canvas Display */}
-            <div className="relative border rounded-lg overflow-hidden bg-black">
+            <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl w-full">
                 <video ref={videoRef} autoPlay playsInline muted className="hidden" />
                 <canvas 
                     ref={canvasRef} 
                     width={640} 
                     height={480} 
-                    className={`w-full max-w-[640px] ${
+                    className={`w-full aspect-[4/3] ${
                         state.verificationResult?.verified && state.verificationResult?.screenshot_preview ? 'hidden' : ''
                     }`} 
                 />
+                
+                {/* Recording indicator */}
                 {state.phase === 'capturing' && (
-                    <div className="absolute top-4 right-4 w-4 h-4 bg-red-500 rounded-full animate-pulse" />
+                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        <span className="text-white text-sm font-medium">Recording</span>
+                    </div>
                 )}
+                
+                {/* Verified screenshot */}
                 {state.verificationResult?.verified && state.verificationResult?.screenshot_preview && (
-                    <div className="w-full max-w-[640px]">
+                    <div className="w-full aspect-[4/3] relative">
                         <img 
                             src={state.verificationResult.screenshot_preview} 
                             alt="Verified Screenshot" 
-                            className="w-full h-auto"
+                            className="w-full h-full object-cover"
                         />
-                        <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
-                            ✓ Verified
+                        <div className="absolute top-4 left-4 bg-green-500/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 shadow-lg">
+                            <span className="text-lg">✓</span>
+                            Verified
                         </div>
                     </div>
                 )}
             </div>
 
             {/* Main Action Button */}
-            <div className="flex gap-2 w-full max-w-[640px]">
+            <div className="w-full">
                 <Button
                     onClick={buttonConfig.onClick}
                     disabled={buttonConfig.disabled}
-                    className="w-full gap-2"
+                    className="w-full gap-3 rounded-full shadow-lg hover:shadow-xl transition-all"
                     size="lg"
                     variant={buttonConfig.variant || 'default'}
                 >
                     {buttonConfig.icon}
-                    {buttonConfig.label}
+                    <span className="font-medium">{buttonConfig.label}</span>
                 </Button>
             </div>
 
-            {/* Verification Result */}
-            {state.verificationResult && (
-                <div className="w-full border rounded-lg p-4 bg-muted">
-                    <h3 className="font-semibold mb-2">Verification Result</h3>
-                    <div className="space-y-2 text-sm font-mono">
-                        <div>
-                            <span className="font-semibold">Status: </span>
-                            <span className={state.verificationResult.verified ? 'text-green-600' : 'text-red-600'}>
-                                {state.verificationResult.verified ? '✓ Verified' : '✗ Failed'}
-                            </span>
-                        </div>
-                        {state.verificationResult.verified && state.verificationResult.ipfs_cid && (
-                            <div className="space-y-2">
-                                <div>
-                                    <span className="font-semibold">IPFS CID: </span>
-                                    <span className="text-blue-600 font-mono text-sm break-all">
-                                        {state.verificationResult.ipfs_cid}
-                                    </span>
-                                </div>
-                                <div className="text-xs text-green-600 bg-green-50 border border-green-200 rounded p-2">
-                                    ✅ <strong>Screenshot uploaded to IPFS</strong> - Click "Seal On-Chain" button above!
-                                </div>
-                            </div>
-                        )}
-                        {state.verificationResult.error && (
-                            <div>
-                                <span className="font-semibold">Error: </span>
-                                <span className="text-red-600">{state.verificationResult.error}</span>
-                            </div>
-                        )}
-                        {state.verificationResult.metrics && (
-                            <details className="mt-2">
-                                <summary className="cursor-pointer font-semibold">View Metrics</summary>
-                                <pre className="mt-2 p-2 bg-background rounded text-xs overflow-auto">
-                                    {JSON.stringify(state.verificationResult.metrics, null, 2)}
-                                </pre>
-                            </details>
-                        )}
-                    </div>
+            {/* Error message */}
+            {state.verificationResult?.error && (
+                <div className="w-full p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-xl text-center">
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                        {state.verificationResult.error}
+                    </p>
+                </div>
+            )}
+
+            {/* IPFS CID for verified (subtle) */}
+            {state.verificationResult?.verified && state.verificationResult?.ipfs_cid && (
+                <div className="text-xs text-muted-foreground/60 font-mono text-center break-all">
+                    {state.verificationResult.ipfs_cid}
                 </div>
             )}
         </div>

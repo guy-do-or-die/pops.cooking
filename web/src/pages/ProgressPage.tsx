@@ -62,10 +62,10 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[80vh]">
         <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading PoP history...</p>
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading history...</p>
         </div>
       </div>
     );
@@ -73,13 +73,14 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[80vh] px-4">
         <div className="text-center max-w-md">
-          <h2 className="text-2xl font-bold mb-4 text-red-500">Error</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={loadHistory} variant="outline">
+          <span className="text-5xl mb-4 block">🫧</span>
+          <h2 className="text-xl font-semibold mb-2">Failed to load</h2>
+          <p className="text-sm text-muted-foreground mb-6">{error}</p>
+          <Button onClick={loadHistory} variant="outline" className="rounded-full">
             <RefreshCw className="mr-2 h-4 w-4" />
-            Retry
+            Try again
           </Button>
         </div>
       </div>
@@ -87,82 +88,69 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
   }
 
   return (
-    <div className="min-h-screen p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <Link href={`/pop/${popAddress}`}>
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Pop
-              </Button>
-            </Link>
-          </div>
-          <Button onClick={loadHistory} variant="outline" size="sm">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Header */}
+      <div className="mb-8 flex items-center justify-between">
+        <Link href={`/pop/${popAddress}`}>
+          <Button variant="ghost" size="sm" className="rounded-full">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
           </Button>
-        </div>
+        </Link>
+        <Button onClick={loadHistory} variant="ghost" size="sm" className="rounded-full">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </div>
 
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">PoP Progress</h1>
-          <p className="text-sm text-muted-foreground font-mono mb-2">{popAddress}</p>
-          <p className="text-muted-foreground">
-            {records.length} verification{records.length !== 1 ? 's' : ''} recorded
-          </p>
-        </div>
+      {/* Title */}
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold mb-3">History</h1>
+        <p className="text-sm text-muted-foreground">
+          {records.length} {records.length === 1 ? 'PoP' : 'PoPs'}
+        </p>
+      </div>
 
-        {records.length === 0 ? (
-          <div className="text-center py-12 bg-muted rounded-lg">
-            <p className="text-muted-foreground text-lg">No progress recorded yet</p>
-            <Link href={`/pop/${popAddress}`}>
-              <Button className="mt-4">Record Your First PoP</Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {records.map((record, index) => (
-              <div
-                key={`${record.challengeHash}-${index}`}
-                className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-              >
-                <div className="aspect-video bg-muted relative">
-                  <img
-                    src={`${IPFS_GATEWAY}/${record.ipfsCid}`}
-                    alt="PoP Screenshot"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-                <div className="p-4 space-y-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Challenge</p>
-                    <p className="text-sm font-mono truncate">{record.challengeHash}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">IPFS CID</p>
-                    <a
-                      href={`${IPFS_GATEWAY}/${record.ipfsCid}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-mono text-blue-500 hover:underline truncate block"
-                    >
-                      {record.ipfsCid}
-                    </a>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(Number(record.timestamp) * 1000, { addSuffix: true })}
-                    </span>
-                  </div>
+      {/* Content */}
+      {records.length === 0 ? (
+        <div className="text-center py-16">
+          <span className="text-6xl mb-6 block">🫧</span>
+          <p className="text-muted-foreground mb-6">No PoPs yet</p>
+          <Link href={`/pop/${popAddress}`}>
+            <Button className="rounded-full">
+              <span className="mr-2">🫧</span>
+              Create your first PoP
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2">
+          {records.map((record, index) => (
+            <div
+              key={`${record.challengeHash}-${index}`}
+              className="group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all bg-card"
+            >
+              {/* Image */}
+              <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                <img
+                  src={`${IPFS_GATEWAY}/${record.ipfsCid}`}
+                  alt="PoP"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+              
+              {/* Info */}
+              <div className="p-4">
+                <div className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(Number(record.timestamp) * 1000, { addSuffix: true })}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

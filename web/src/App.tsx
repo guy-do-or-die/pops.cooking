@@ -1,4 +1,4 @@
-import { Route, Switch } from 'wouter';
+import { Route, Switch, Link } from 'wouter';
 import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
 import { Home } from '@/pages/Home';
@@ -9,17 +9,32 @@ function App() {
   const { ready, authenticated, login, logout } = usePrivy();
 
   return (
-    <>
-      <div className="fixed top-4 right-4 z-50">
-        {ready && (
-          authenticated ? (
-            <Button onClick={logout} variant="outline">Logout</Button>
-          ) : (
-            <Button onClick={login}>Login</Button>
-          )
-        )}
-      </div>
-      <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {/* Minimal Header */}
+      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-md">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <Link href="/">
+            <a className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <span className="text-3xl">🫧</span>
+              <span className="font-semibold text-lg">pops</span>
+            </a>
+          </Link>
+          
+          {ready && (
+            <Button 
+              onClick={authenticated ? logout : login} 
+              variant={authenticated ? "ghost" : "default"}
+              size="sm"
+              className="rounded-full"
+            >
+              {authenticated ? 'Disconnect' : 'Connect'}
+            </Button>
+          )}
+        </div>
+      </header>
+
+      {/* Content */}
+      <main>
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/pop/:address" component={PopPage} />
@@ -27,13 +42,19 @@ function App() {
             {(params) => <ProgressPage popAddress={params.address} />}
           </Route>
           <Route>
-            <div className="flex items-center justify-center min-h-screen">
-              <h1 className="text-2xl">404 - Page Not Found</h1>
+            <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
+              <span className="text-6xl mb-4">🫧</span>
+              <h1 className="text-2xl font-semibold mb-2">Page not found</h1>
+              <Link href="/">
+                <a className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Go home
+                </a>
+              </Link>
             </div>
           </Route>
         </Switch>
-      </div>
-    </>
+      </main>
+    </div>
   );
 }
 
