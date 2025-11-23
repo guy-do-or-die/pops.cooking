@@ -155,27 +155,27 @@ export const Home: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[85vh] px-4 py-12">
-            <div className="max-w-md w-full space-y-8 text-center">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] px-6 py-16">
+            <div className="max-w-lg w-full text-center">
                 {/* Hero */}
-                <div className="space-y-4">
-                    <div className="text-8xl mb-6 animate-in fade-in duration-1000">🫧</div>
-                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                <div className="space-y-6 mb-12">
+                    <div className="text-8xl md:text-9xl mb-8 leading-none animate-in fade-in duration-1000">🫧</div>
+                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
                         Proof of Progress
                     </h1>
-                    <p className="text-lg text-muted-foreground max-w-sm mx-auto">
+                    <p className="text-lg md:text-xl text-muted-foreground max-w-md mx-auto leading-relaxed">
                         Snap verifiable moments. Seal them on-chain.
                     </p>
                 </div>
 
                 {/* CTA */}
-                <div className="pt-8">
+                <div className="space-y-6">
                     {wallets.length === 0 ? (
-                        <div className="space-y-3">
-                            <p className="text-sm text-muted-foreground">
+                        <div className="space-y-4 py-8">
+                            <p className="text-base text-muted-foreground leading-relaxed">
                                 Connect your wallet to get started
                             </p>
-                            <div className="text-xs text-muted-foreground/60">
+                            <div className="text-sm text-muted-foreground/60">
                                 ↗ Use the button above
                             </div>
                         </div>
@@ -184,16 +184,16 @@ export const Home: React.FC = () => {
                             onClick={mintToken} 
                             disabled={minting || !contractAddress}
                             size="lg"
-                            className="rounded-full px-8 py-6 text-base font-medium shadow-lg hover:shadow-xl transition-all"
+                            className="rounded-full px-10 py-7 text-lg font-semibold shadow-lg hover:shadow-xl transition-all tracking-tight"
                         >
                             {minting ? (
                                 <>
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                                     Creating your PoP...
                                 </>
                             ) : (
                                 <>
-                                    <span className="mr-2">🫧</span>
+                                    <span className="mr-2 text-xl">🫧</span>
                                     Create your PoP
                                 </>
                             )}
@@ -203,7 +203,7 @@ export const Home: React.FC = () => {
 
                 {/* Footer info */}
                 {contractAddress && (
-                    <div className="pt-8 text-xs text-muted-foreground/50 font-mono">
+                    <div className="mt-16 text-xs text-muted-foreground/50 font-mono tracking-wide">
                         {contractAddress.slice(0, 6)}...{contractAddress.slice(-4)}
                     </div>
                 )}

@@ -605,9 +605,9 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress }) => {
     const buttonConfig = getButtonConfig();
 
     return (
-        <div className="flex flex-col items-center gap-6 w-full">
+        <div className="flex flex-col items-center w-full space-y-8">
             {/* Video/Canvas Display */}
-            <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl w-full">
+            <div className="relative rounded-3xl overflow-hidden bg-black shadow-2xl w-full ring-1 ring-white/10">
                 <video ref={videoRef} autoPlay playsInline muted className="hidden" />
                 <canvas 
                     ref={canvasRef} 
@@ -620,9 +620,9 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress }) => {
                 
                 {/* Recording indicator */}
                 {state.phase === 'capturing' && (
-                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <div className="absolute top-5 right-5 flex items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
                         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                        <span className="text-white text-sm font-medium">Recording</span>
+                        <span className="text-white text-sm font-semibold tracking-tight">Recording</span>
                     </div>
                 )}
                 
@@ -634,9 +634,9 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress }) => {
                             alt="Verified Screenshot" 
                             className="w-full h-full object-cover"
                         />
-                        <div className="absolute top-4 left-4 bg-green-500/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 shadow-lg">
-                            <span className="text-lg">✓</span>
-                            Verified
+                        <div className="absolute top-5 left-5 bg-green-500/95 backdrop-blur-md text-white px-5 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2.5 shadow-xl border border-white/20">
+                            <span className="text-lg leading-none">✓</span>
+                            <span className="tracking-tight">Verified</span>
                         </div>
                     </div>
                 )}
@@ -647,19 +647,19 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress }) => {
                 <Button
                     onClick={buttonConfig.onClick}
                     disabled={buttonConfig.disabled}
-                    className="w-full gap-3 rounded-full shadow-lg hover:shadow-xl transition-all"
+                    className="w-full gap-3 rounded-full shadow-lg hover:shadow-xl transition-all h-14 text-base font-semibold tracking-tight"
                     size="lg"
                     variant={buttonConfig.variant || 'default'}
                 >
                     {buttonConfig.icon}
-                    <span className="font-medium">{buttonConfig.label}</span>
+                    <span>{buttonConfig.label}</span>
                 </Button>
             </div>
 
             {/* Error message */}
             {state.verificationResult?.error && (
-                <div className="w-full p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-xl text-center">
-                    <p className="text-sm text-red-600 dark:text-red-400">
+                <div className="w-full p-5 bg-red-50 light:bg-red-950/20 border border-red-200 light:border-red-900 rounded-2xl text-center">
+                    <p className="text-sm text-red-600 light:text-red-400 leading-relaxed">
                         {state.verificationResult.error}
                     </p>
                 </div>
@@ -667,7 +667,7 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress }) => {
 
             {/* IPFS CID for verified (subtle) */}
             {state.verificationResult?.verified && state.verificationResult?.ipfs_cid && (
-                <div className="text-xs text-muted-foreground/60 font-mono text-center break-all">
+                <div className="text-xs text-muted-foreground/50 font-mono text-center break-all tracking-wider px-4">
                     {state.verificationResult.ipfs_cid}
                 </div>
             )}

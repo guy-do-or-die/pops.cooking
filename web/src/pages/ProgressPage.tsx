@@ -88,11 +88,11 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="max-w-5xl mx-auto px-6 py-12">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-12 flex items-center justify-between">
         <Link href={`/pop/${popAddress}`}>
-          <Button variant="ghost" size="sm" className="rounded-full">
+          <Button variant="ghost" size="sm" className="rounded-full font-medium">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
@@ -103,38 +103,38 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
       </div>
 
       {/* Title */}
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-3">History</h1>
-        <p className="text-sm text-muted-foreground">
+      <div className="mb-12 text-center space-y-3">
+        <h1 className="text-4xl font-bold tracking-tight">History</h1>
+        <p className="text-base text-muted-foreground">
           {records.length} {records.length === 1 ? 'PoP' : 'PoPs'}
         </p>
       </div>
 
       {/* Content */}
       {records.length === 0 ? (
-        <div className="text-center py-16">
-          <span className="text-6xl mb-6 block">🫧</span>
-          <p className="text-muted-foreground mb-6">No PoPs yet</p>
+        <div className="text-center py-20">
+          <span className="text-7xl mb-8 block leading-none">🫧</span>
+          <p className="text-lg text-muted-foreground mb-8 leading-relaxed">No PoPs yet</p>
           <Link href={`/pop/${popAddress}`}>
-            <Button className="rounded-full">
-              <span className="mr-2">🫧</span>
+            <Button className="rounded-full px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all">
+              <span className="mr-2 text-xl">🫧</span>
               Create your first PoP
             </Button>
           </Link>
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {records.map((record, index) => (
             <div
               key={`${record.challengeHash}-${index}`}
-              className="group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all bg-card"
+              className="group rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all bg-card ring-1 ring-black/5"
             >
               {/* Image */}
               <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                 <img
                   src={`${IPFS_GATEWAY}/${record.ipfsCid}`}
                   alt="PoP"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
@@ -142,8 +142,8 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
               </div>
               
               {/* Info */}
-              <div className="p-4">
-                <div className="text-xs text-muted-foreground">
+              <div className="p-5">
+                <div className="text-sm text-muted-foreground tracking-tight">
                   {formatDistanceToNow(Number(record.timestamp) * 1000, { addSuffix: true })}
                 </div>
               </div>

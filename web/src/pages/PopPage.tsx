@@ -23,11 +23,11 @@ export const PopPage: React.FC = () => {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <div className="max-w-2xl mx-auto px-6 py-12">
             {/* Top Nav */}
-            <div className="flex items-center justify-end mb-8">
+            <div className="flex items-center justify-end mb-12">
                 <Link href={`/pop/${popAddress}/progress`}>
-                    <Button variant="ghost" size="sm" className="rounded-full">
+                    <Button variant="ghost" size="sm" className="rounded-full font-medium">
                         <History className="mr-2 h-4 w-4" />
                         History
                     </Button>
@@ -35,8 +35,8 @@ export const PopPage: React.FC = () => {
             </div>
 
             {/* Address Info */}
-            <div className="mb-8 text-center">
-                <div className="text-xs font-mono text-muted-foreground/60 mb-6">
+            <div className="mb-10 text-center">
+                <div className="text-xs font-mono text-muted-foreground/50 tracking-wider">
                     {popAddress.slice(0, 6)}...{popAddress.slice(-4)}
                 </div>
             </div>
