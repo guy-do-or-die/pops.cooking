@@ -35,6 +35,7 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
     const [verifying, setVerifying] = useState(false);
     const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
     const [recordingProgress, setRecordingProgress] = useState(false);
+    const [txStatus, setTxStatus] = useState<string>('');
     const [challengeHash, setChallengeHash] = useState<string>('');
     const [derivedChallenge, setDerivedChallenge] = useState<DerivedChallenge | null>(null);
     const popAddress = popAddressProp;
@@ -401,6 +402,7 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
         }
 
         setRecordingProgress(true);
+        setTxStatus('Preparing transaction...');
 
         try {
             const provider = await wallet.getEthereumProvider();
@@ -415,6 +417,7 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
             console.log('[PROGRESS] Challenge:', challengeHash);
             console.log('[PROGRESS] IPFS CID:', verificationResult.ipfs_cid);
 
+            setTxStatus('Sending transaction...');
             const txHash = await walletClient.writeContract({
                 address: popAddress as `0x${string}`,
                 abi: PopABI,
@@ -425,14 +428,19 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
             });
 
             console.log('[PROGRESS] Transaction sent:', txHash);
+            setTxStatus('Waiting for confirmation...');
             await publicClient?.waitForTransactionReceipt({ hash: txHash });
             console.log('[PROGRESS] Progress recorded on-chain!');
 
+            setTxStatus('Confirmed! Redirecting...');
             // Redirect to progress page to view all recordings
-            setLocation(`/pop/${popAddress}/progress`);
+            setTimeout(() => {
+                setLocation(`/pop/${popAddress}/progress`);
+            }, 500);
 
         } catch (error) {
             console.error('[PROGRESS] Error recording progress:', error);
+            setTxStatus('');
             alert(`Failed to record progress: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setRecordingProgress(false);
@@ -471,9 +479,22 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
 
             <div className="relative border rounded-lg overflow-hidden bg-black">
                 <video ref={videoRef} autoPlay playsInline muted className="hidden" />
-                <canvas ref={canvasRef} width={640} height={480} className="w-full max-w-[640px]" />
+                <canvas ref={canvasRef} width={640} height={480} className={`w-full max-w-[640px] ${verificationResult?.verified && verificationResult?.screenshot_preview ? 'hidden' : ''}`} />
                 {recording && (
                     <div className="absolute top-4 right-4 w-4 h-4 bg-red-500 rounded-full animate-pulse" />
+                )}
+                {/* Show screenshot preview when verified */}
+                {verificationResult?.verified && verificationResult?.screenshot_preview && (
+                    <div className="w-full max-w-[640px]">
+                        <img 
+                            src={verificationResult.screenshot_preview} 
+                            alt="Verified Screenshot" 
+                            className="w-full h-auto"
+                        />
+                        <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
+                            ✓ Verified
+                        </div>
+                    </div>
                 )}
             </div>
 
@@ -521,8 +542,8 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
                                     <span className="font-semibold">IPFS CID: </span>
                                     <span className="text-blue-600 font-mono text-sm break-all">{verificationResult.ipfs_cid}</span>
                                 </div>
-                                <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
-                                    ⚠️ <strong>Mock CID</strong> - Screenshot not uploaded to IPFS yet. Real Synapse SDK upload requires configuration.
+                                <div className="text-xs text-green-600 bg-green-50 border border-green-200 rounded p-2">
+                                    ✅ <strong>Screenshot uploaded to IPFS</strong> - Ready to record on-chain!
                                 </div>
                                 <Button
                                     onClick={recordProgressOnChain}
@@ -530,7 +551,10 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
                                     className="w-full gap-2"
                                 >
                                     {recordingProgress ? (
-                                        <>Recording Progress...</>
+                                        <>
+                                            <RefreshCw className="w-4 h-4 animate-spin" />
+                                            Recording Progress...
+                                        </>
                                     ) : (
                                         <>
                                             <Upload className="w-4 h-4" />
@@ -538,6 +562,11 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
                                         </>
                                     )}
                                 </Button>
+                                {txStatus && (
+                                    <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded p-2 text-center">
+                                        {txStatus}
+                                    </div>
+                                )}
                             </div>
                         )}
                         {verificationResult.error && (
