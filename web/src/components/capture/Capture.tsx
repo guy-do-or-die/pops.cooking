@@ -7,7 +7,6 @@ import { useWallets } from '@privy-io/react-auth';
 import { decodeEventLog, createWalletClient, custom } from 'viem';
 import { PopABI } from '@/lib/PopABI';
 import { chain } from '@/lib/wagmi';
-import { useLocation } from 'wouter';
 
 interface VerificationResult {
     verified: boolean;
@@ -42,7 +41,6 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
     const chunksRef = useRef<Blob[]>([]);
     const publicClient = usePublicClient();
     const { wallets } = useWallets();
-    const [, setLocation] = useLocation();
 
     // Fetch existing challenge from Pop contract on mount
     useEffect(() => {
@@ -432,11 +430,15 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress: popAddre
             await publicClient?.waitForTransactionReceipt({ hash: txHash });
             console.log('[PROGRESS] Progress recorded on-chain!');
 
-            setTxStatus('Confirmed! Redirecting...');
-            // Redirect to progress page to view all recordings
+            setTxStatus('✅ Progress recorded on-chain!');
+            
+            // Reset for next recording after showing success
             setTimeout(() => {
-                setLocation(`/pop/${popAddress}/progress`);
-            }, 500);
+                setRecordedBlob(null);
+                setVerificationResult(null);
+                setTxStatus('');
+                generateNewChallenge();
+            }, 2000);
 
         } catch (error) {
             console.error('[PROGRESS] Error recording progress:', error);
