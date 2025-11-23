@@ -1,4 +1,4 @@
-# Pops - Proof of Pop
+# Pops - Proof of Progress
 
 On-chain proof-of-work system where users mint NFTs (Pops) and complete audio-visual challenges verified by a TEE to record verifiable progress on Celo blockchain with screenshots stored on Filecoin.
 
