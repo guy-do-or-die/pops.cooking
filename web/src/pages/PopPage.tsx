@@ -1,7 +1,6 @@
 import React from 'react';
 import { useRoute, Link } from 'wouter';
 import { Capture } from '@/components/capture/Capture';
-import { Button } from '@/components/ui/button';
 import { History } from 'lucide-react';
 
 export const PopPage: React.FC = () => {
@@ -13,10 +12,8 @@ export const PopPage: React.FC = () => {
             <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
                 <span className="text-6xl mb-4">🫧</span>
                 <h2 className="text-2xl font-semibold mb-2">Invalid address</h2>
-                <Link href="/">
-                    <a className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                        Go home
-                    </a>
+                <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Go home
                 </Link>
             </div>
         );
@@ -27,10 +24,10 @@ export const PopPage: React.FC = () => {
             {/* Top Nav */}
             <div className="flex items-center justify-end mb-12">
                 <Link href={`/pop/${popAddress}/progress`}>
-                    <Button variant="ghost" size="sm" className="rounded-full font-medium bg-transparent hover:bg-gray-100 text-gray-700 border-0">
-                        <History className="mr-2 h-4 w-4" />
+                    <button className="flex items-center gap-2 rounded-full font-medium bg-transparent hover:bg-gray-100 text-gray-700 border-0 px-4 py-2 text-sm transition-colors">
+                        <History className="h-4 w-4" />
                         History
-                    </Button>
+                    </button>
                 </Link>
             </div>
 

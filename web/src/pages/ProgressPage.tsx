@@ -92,10 +92,10 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
       {/* Header */}
       <div className="mb-12 flex items-center justify-between">
         <Link href={`/pop/${popAddress}`}>
-          <Button variant="ghost" size="sm" className="rounded-full font-medium bg-transparent hover:bg-gray-100 text-gray-700 border-0">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+          <button className="flex items-center gap-2 rounded-full font-medium bg-transparent hover:bg-gray-100 text-gray-700 border-0 px-4 py-2 text-sm transition-colors">
+            <ArrowLeft className="h-4 w-4" />
             Back
-          </Button>
+          </button>
         </Link>
         <Button onClick={loadHistory} variant="ghost" size="sm" className="rounded-full bg-transparent hover:bg-gray-100 text-gray-700 border-0">
           <RefreshCw className="h-4 w-4" />
@@ -116,10 +116,10 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
           <span className="text-7xl mb-8 block leading-none">🫧</span>
           <p className="text-lg text-muted-foreground mb-8 leading-relaxed">No PoPs yet</p>
           <Link href={`/pop/${popAddress}`}>
-            <Button className="rounded-full px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all bg-black hover:bg-black/90 text-white border-0">
-              <span className="mr-2 text-xl">🫧</span>
+            <button className="flex items-center gap-2 rounded-full px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all bg-black hover:bg-black/90 text-white border-0">
+              <span className="text-xl">🫧</span>
               Create your first PoP
-            </Button>
+            </button>
           </Link>
         </div>
       ) : (
