@@ -463,12 +463,26 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress }) => {
         try {
             // Call verifier directly instead of through Vercel proxy to avoid FormData issues
             const verifierUrl = import.meta.env.VITE_VERIFIER_URL || 'https://p8000.m1098.opf-testnet-rofl-25.rofl.app';
+            
+            console.log('[VERIFY] Sending to:', `${verifierUrl}/verify`);
+            console.log('[VERIFY] Pop address:', popAddress);
+            console.log('[VERIFY] Blob size:', blob.size, 'type:', blob.type);
+            
             const response = await fetch(`${verifierUrl}/verify`, {
                 method: 'POST',
                 body: formData,
             });
 
+            console.log('[VERIFY] Response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[VERIFY] Error response:', errorText);
+                throw new Error(`Verification failed (${response.status}): ${errorText}`);
+            }
+
             const result = await response.json();
+            console.log('[VERIFY] Result:', result);
             dispatch({ type: 'VERIFICATION_COMPLETE', result });
         } catch (error) {
             dispatch({
