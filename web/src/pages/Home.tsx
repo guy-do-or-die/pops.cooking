@@ -159,6 +159,13 @@ export const Home: React.FC = () => {
             <div className="w-full text-center">
                 {/* Hero */}
                 <div className="space-y-6 mb-12">
+                    <div className="mb-8 flex justify-center">
+                        <img 
+                            src="/logo.png" 
+                            alt="Pops Logo" 
+                            className="w-32 h-32 md:w-40 md:h-40 object-contain animate-in fade-in duration-1000"
+                        />
+                    </div>
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
                         Proof of Progress
                     </h1>
