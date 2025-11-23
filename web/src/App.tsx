@@ -10,38 +10,23 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Header with Logo */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-md">
-        <div className="w-full px-6 h-20 flex items-center justify-center relative">
-          {/* Logo - Centered */}
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-all group">
-            <div className="relative">
-              <span className="text-4xl leading-none group-hover:scale-110 transition-transform inline-block">🫧</span>
-            </div>
-            <span className="font-bold text-2xl tracking-tighter bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
-              Pops
-            </span>
-          </Link>
-          
-          {/* Connect Button - Absolute Right */}
-          {ready && (
-            <div className="absolute right-6">
-              <Button 
-                onClick={authenticated ? logout : login} 
-                variant={authenticated ? "ghost" : "default"}
-                size="sm"
-                className={`rounded-full font-medium border-0 ${
-                  authenticated 
-                    ? 'bg-transparent hover:bg-gray-100 text-gray-700' 
-                    : 'bg-black hover:bg-black/90 text-white'
-                }`}
-              >
-                {authenticated ? 'Disconnect' : 'Connect'}
-              </Button>
-            </div>
-          )}
+      {/* Connect Button - Floating */}
+      {ready && (
+        <div className="fixed top-6 right-6 z-50">
+          <Button 
+            onClick={authenticated ? logout : login} 
+            variant={authenticated ? "ghost" : "default"}
+            size="sm"
+            className={`rounded-full font-medium border-0 shadow-lg ${
+              authenticated 
+                ? 'bg-white hover:bg-gray-100 text-gray-700' 
+                : 'bg-black hover:bg-black/90 text-white'
+            }`}
+          >
+            {authenticated ? 'Disconnect' : 'Connect'}
+          </Button>
         </div>
-      </header>
+      )}
 
       {/* Content - Centered on Desktop */}
       <main className="w-full flex justify-center">
