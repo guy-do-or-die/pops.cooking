@@ -155,8 +155,8 @@ export const Home: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] px-6 py-16">
-            <div className="max-w-lg w-full text-center">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] px-6 py-16">
+            <div className="w-full text-center">
                 {/* Hero */}
                 <div className="space-y-6 mb-12">
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">

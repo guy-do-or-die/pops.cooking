@@ -88,7 +88,7 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
+    <div className="w-full px-6 py-12">
       {/* Header */}
       <div className="mb-12 flex items-center justify-between">
         <Link href={`/pop/${popAddress}`}>
@@ -104,7 +104,7 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
 
       {/* Title */}
       <div className="mb-12 text-center space-y-3">
-        <h1 className="text-4xl font-bold tracking-tight">History</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Progress</h1>
         <p className="text-base text-muted-foreground">
           {records.length} {records.length === 1 ? 'PoP' : 'PoPs'}
         </p>
