@@ -78,7 +78,7 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
           <span className="text-5xl mb-4 block">🫧</span>
           <h2 className="text-xl font-semibold mb-2">Failed to load</h2>
           <p className="text-sm text-muted-foreground mb-6">{error}</p>
-          <Button onClick={loadHistory} variant="outline" className="rounded-full">
+          <Button onClick={loadHistory} variant="outline" className="rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 border-0">
             <RefreshCw className="mr-2 h-4 w-4" />
             Try again
           </Button>
@@ -92,12 +92,12 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
       {/* Header */}
       <div className="mb-12 flex items-center justify-between">
         <Link href={`/pop/${popAddress}`}>
-          <Button variant="ghost" size="sm" className="rounded-full font-medium">
+          <Button variant="ghost" size="sm" className="rounded-full font-medium bg-transparent hover:bg-gray-100 text-gray-700 border-0">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
         </Link>
-        <Button onClick={loadHistory} variant="ghost" size="sm" className="rounded-full">
+        <Button onClick={loadHistory} variant="ghost" size="sm" className="rounded-full bg-transparent hover:bg-gray-100 text-gray-700 border-0">
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
@@ -116,7 +116,7 @@ export const ProgressPage: React.FC<{ popAddress: string }> = ({ popAddress }) =
           <span className="text-7xl mb-8 block leading-none">🫧</span>
           <p className="text-lg text-muted-foreground mb-8 leading-relaxed">No PoPs yet</p>
           <Link href={`/pop/${popAddress}`}>
-            <Button className="rounded-full px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all">
+            <Button className="rounded-full px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all bg-black hover:bg-black/90 text-white border-0">
               <span className="mr-2 text-xl">🫧</span>
               Create your first PoP
             </Button>

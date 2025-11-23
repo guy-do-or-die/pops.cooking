@@ -647,7 +647,11 @@ export const Capture: React.FC<CaptureProps> = ({ disabled, popAddress }) => {
                 <Button
                     onClick={buttonConfig.onClick}
                     disabled={buttonConfig.disabled}
-                    className="w-full gap-3 rounded-full shadow-lg hover:shadow-xl transition-all h-14 text-base font-semibold tracking-tight"
+                    className={`w-full gap-3 rounded-full shadow-lg hover:shadow-xl transition-all h-14 text-base font-semibold tracking-tight border-0 ${
+                        buttonConfig.variant === 'outline' 
+                            ? 'bg-gray-100 hover:bg-gray-200 text-gray-900' 
+                            : 'bg-black hover:bg-black/90 text-white'
+                    }`}
                     size="lg"
                     variant={buttonConfig.variant || 'default'}
                 >

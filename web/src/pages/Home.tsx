@@ -159,7 +159,6 @@ export const Home: React.FC = () => {
             <div className="max-w-lg w-full text-center">
                 {/* Hero */}
                 <div className="space-y-6 mb-12">
-                    <div className="text-8xl md:text-9xl mb-8 leading-none animate-in fade-in duration-1000">🫧</div>
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
                         Proof of Progress
                     </h1>
@@ -175,16 +174,13 @@ export const Home: React.FC = () => {
                             <p className="text-base text-muted-foreground leading-relaxed">
                                 Connect your wallet to get started
                             </p>
-                            <div className="text-sm text-muted-foreground/60">
-                                ↗ Use the button above
-                            </div>
                         </div>
                     ) : (
                         <Button 
                             onClick={mintToken} 
                             disabled={minting || !contractAddress}
                             size="lg"
-                            className="rounded-full px-10 py-7 text-lg font-semibold shadow-lg hover:shadow-xl transition-all tracking-tight"
+                            className="rounded-full px-10 py-7 text-lg font-semibold shadow-lg hover:shadow-xl transition-all tracking-tight bg-black hover:bg-black/90 text-white border-0"
                         >
                             {minting ? (
                                 <>
@@ -201,12 +197,6 @@ export const Home: React.FC = () => {
                     )}
                 </div>
 
-                {/* Footer info */}
-                {contractAddress && (
-                    <div className="mt-16 text-xs text-muted-foreground/50 font-mono tracking-wide">
-                        {contractAddress.slice(0, 6)}...{contractAddress.slice(-4)}
-                    </div>
-                )}
             </div>
         </div>
     );

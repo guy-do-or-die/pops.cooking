@@ -27,7 +27,7 @@ export const PopPage: React.FC = () => {
             {/* Top Nav */}
             <div className="flex items-center justify-end mb-12">
                 <Link href={`/pop/${popAddress}/progress`}>
-                    <Button variant="ghost" size="sm" className="rounded-full font-medium">
+                    <Button variant="ghost" size="sm" className="rounded-full font-medium bg-transparent hover:bg-gray-100 text-gray-700 border-0">
                         <History className="mr-2 h-4 w-4" />
                         History
                     </Button>

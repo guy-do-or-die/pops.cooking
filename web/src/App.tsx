@@ -25,7 +25,11 @@ function App() {
               onClick={authenticated ? logout : login} 
               variant={authenticated ? "ghost" : "default"}
               size="sm"
-              className="rounded-full font-medium"
+              className={`rounded-full font-medium border-0 ${
+                authenticated 
+                  ? 'bg-transparent hover:bg-gray-100 text-gray-700' 
+                  : 'bg-black hover:bg-black/90 text-white'
+              }`}
             >
               {authenticated ? 'Disconnect' : 'Connect'}
             </Button>
