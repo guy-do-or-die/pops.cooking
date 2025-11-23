@@ -1,10 +1,6 @@
 {
     "rewrites": [
         {
-            "source": "/api/:path*",
-            "destination": "https://p8000.m1098.opf-testnet-rofl-25.rofl.app/:path*"
-        },
-        {
             "source": "/:path*",
             "destination": "/index.html"
         }
